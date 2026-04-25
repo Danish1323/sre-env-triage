@@ -1,0 +1,44 @@
+# ============================================================
+# Dockerfile — Gradio UI (Phase 1)
+# ============================================================
+# Builds the interactive Gradio demo for sre-decision-env.
+# Runs on port 7860 (standard Gradio port).
+# Pass your OpenRouter key via docker-compose or --env flag.
+# ============================================================
+
+FROM python:3.11-slim
+
+# System deps
+RUN apt-get update && apt-get install -y --no-install-recommends \
+        curl \
+        git \
+    && rm -rf /var/lib/apt/lists/*
+
+# Install uv (fast package manager)
+RUN curl -LsSf https://astral.sh/uv/install.sh | sh && \
+    mv /root/.local/bin/uv /usr/local/bin/uv && \
+    mv /root/.local/bin/uvx /usr/local/bin/uvx
+
+WORKDIR /app
+
+# Copy dependency files first (layer caching)
+COPY pyproject.toml uv.lock ./
+
+# Install all dependencies into a venv at /app/.venv
+RUN uv sync --frozen --no-install-project --no-editable
+
+# Copy the rest of the project code
+COPY . .
+
+# Install the project itself into the venv
+RUN uv sync --frozen --no-editable
+
+ENV PATH="/app/.venv/bin:$PATH"
+ENV PYTHONPATH="/app"
+
+EXPOSE 7860
+
+HEALTHCHECK --interval=15s --timeout=5s --start-period=10s --retries=3 \
+    CMD curl -f http://localhost:7860/ || exit 1
+
+CMD ["python", "ui/app.py"]

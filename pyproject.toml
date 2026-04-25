@@ -1,0 +1,56 @@
+# SRE Decision Environment — Phase 1
+# Managed with uv. Run: uv sync
+
+[build-system]
+requires = ["setuptools>=45", "wheel"]
+build-backend = "setuptools.build_meta"
+
+[project]
+name = "openenv-sre_decision_env"
+version = "0.1.0"
+description = "SRE Incident-Response Environment for OpenEnv — Phase 1"
+requires-python = ">=3.10"
+dependencies = [
+    # OpenEnv runtime
+    "openenv-core[core]>=0.2.2",
+
+    # LLM inference — OpenRouter Phase 1
+    "openai>=1.40.0,<3.0.0",          # openai SDK (openrouter uses same API)
+    "httpx>=0.24.0",
+
+    # UI
+    "gradio>=4.0.0",
+
+    # Evaluation / plotting
+    "matplotlib>=3.7.0",
+    "seaborn>=0.12.0",
+    "pandas>=2.0.0",
+
+    # Config / env
+    "python-dotenv>=1.0.0",
+    "pyyaml>=6.0",
+
+    # Utilities
+    "rich>=13.0.0",
+    "typer>=0.9.0",
+]
+
+[project.optional-dependencies]
+dev = [
+    "pytest>=8.0.0",
+    "pytest-cov>=4.0.0",
+    "pytest-asyncio>=0.23.0",
+]
+
+[project.scripts]
+# Run the OpenEnv server: uv run --project . server
+server = "sre_decision_env.server.app:main"
+
+[tool.setuptools]
+include-package-data = true
+packages = ["sre_decision_env", "sre_decision_env.server"]
+package-dir = { "sre_decision_env" = ".", "sre_decision_env.server" = "server" }
+
+[tool.pytest.ini_options]
+testpaths = ["tests"]
+asyncio_mode = "auto"

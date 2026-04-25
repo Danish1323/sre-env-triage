@@ -1,0 +1,46 @@
+# Docker ignore for sre-decision-env
+# Keeps Docker build context lean
+
+# Virtual environments — never copy into Docker
+.venv/
+venv/
+env/
+
+# Secrets
+.env
+*.env
+
+# Python cache
+__pycache__/
+*.pyc
+*.pyo
+*.pyd
+.Python
+
+# Generated outputs
+assets/*.png
+assets/*.json
+
+# Test cache
+.pytest_cache/
+htmlcov/
+.coverage
+
+# Jupyter
+.ipynb_checkpoints/
+
+# IDEs
+.idea/
+.vscode/
+*.swp
+
+# macOS
+.DS_Store
+
+# Git
+.git/
+.gitignore
+
+# Docs / extra
+*.md
+notebooks/

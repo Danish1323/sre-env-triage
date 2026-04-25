@@ -1,0 +1,17 @@
+{
+  "phase": "phase1",
+  "description": "Small benchmark suite for Phase 1 baseline evaluation. 10 scenarios covering all 5 root causes.",
+  "max_steps": 10,
+  "cases": [
+    {"id": "sc001", "root_cause": "server_A_failure", "label": "Server A hard failure"},
+    {"id": "sc002", "root_cause": "server_A_failure", "label": "Server A hard failure (repeat)"},
+    {"id": "sc003", "root_cause": "memory_leak",      "label": "Slow memory leak"},
+    {"id": "sc004", "root_cause": "memory_leak",      "label": "Memory leak under load"},
+    {"id": "sc005", "root_cause": "network_latency",  "label": "Network partition / high latency"},
+    {"id": "sc006", "root_cause": "network_latency",  "label": "Intermittent network latency"},
+    {"id": "sc007", "root_cause": "transient_spike",  "label": "Transient traffic spike"},
+    {"id": "sc008", "root_cause": "transient_spike",  "label": "Transient spike — auto-resolved"},
+    {"id": "sc009", "root_cause": "no_issue",         "label": "False alarm — no real issue"},
+    {"id": "sc010", "root_cause": "no_issue",         "label": "False alarm — noisy metrics"}
+  ]
+}
