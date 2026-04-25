@@ -28,10 +28,6 @@ uv.lock  # keep for reproducibility — remove this line if you want to ignore i
 .ipynb_checkpoints/
 *.ipynb.bak
 
-# Assets (generated plots) — optional to commit
-assets/*.png
-assets/*.json
-
 # Docker
 .docker/
 
@@ -47,3 +43,6 @@ assets/*.json
 .pytest_cache/
 htmlcov/
 .coverage
+
+data/
+reports/

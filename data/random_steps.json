@@ -1,22 +1,22 @@
 [
   {
-    "episode_id": "bf6dcacf-c711-4d06-814e-2ca462e3b9b1",
+    "episode_id": "7a0c2588-f1cc-4a62-b136-45c6e98b8ab7",
     "step": 0,
     "obs": {
       "done": false,
       "reward": null,
       "metadata": {},
       "logs": {
-        "latency_spike": true,
-        "error_rate": 0.6177142711843007,
-        "log_anomaly_score": 0.17542045632503506,
-        "five_xx_error_rate": 0.006456243876310913
+        "latency_spike": false,
+        "error_rate": 0.00040610013695913105,
+        "log_anomaly_score": 0.1150190665832952,
+        "five_xx_error_rate": 0.0
       },
       "observer": {
-        "server_b_health": "healthy",
-        "cpu_usage": 0.43837173625335746,
-        "memory_usage": 0.8967410765903183,
-        "db_connections": 125
+        "server_b_health": "degraded",
+        "cpu_usage": 0.1180000579988954,
+        "memory_usage": 0.7723235564929589,
+        "db_connections": 166
       },
       "time_step": 0,
       "last_action": null,
@@ -33,275 +33,10 @@
         "resolve_incident"
       ]
     },
-    "action": "rollback_service",
-    "reward": 0.09534946489910949,
-    "done": false,
-    "resolved": false,
-    "correct_action": false
-  },
-  {
-    "episode_id": "bf6dcacf-c711-4d06-814e-2ca462e3b9b1",
-    "step": 1,
-    "obs": {
-      "done": false,
-      "reward": 0.09534946489910949,
-      "metadata": {
-        "root_cause_hidden": true,
-        "step": 1,
-        "episode_id": "bf6dcacf-c711-4d06-814e-2ca462e3b9b1",
-        "total_reward_so_far": 0.0953,
-        "reward_breakdown": {
-          "action_score": -0.5,
-          "diagnosis_bonus": -1.0,
-          "penalty": 0.5,
-          "timing_bonus": 0.0,
-          "raw_reward": -2.25,
-          "final_reward": 0.095
-        }
-      },
-      "logs": {
-        "latency_spike": true,
-        "error_rate": 0.40957716912595166,
-        "log_anomaly_score": 0.44642579831224044,
-        "five_xx_error_rate": 0.15160817715829367
-      },
-      "observer": {
-        "server_b_health": "degraded",
-        "cpu_usage": 0.16397215287317532,
-        "memory_usage": 0.9778277349117044,
-        "db_connections": 119
-      },
-      "time_step": 1,
-      "last_action": "rollback_service",
-      "action_feedback": "Rollback initiated. Reverting to last stable deployment.",
-      "incident_resolved": false,
-      "available_actions": [
-        "inspect_logs",
-        "inspect_metrics",
-        "check_deploy_history",
-        "declare_severity_low",
-        "declare_severity_high",
-        "restart_service",
-        "rollback_service",
-        "resolve_incident"
-      ]
-    },
-    "action": "inspect_metrics",
-    "reward": 0.7502601055951177,
-    "done": false,
-    "resolved": false,
-    "correct_action": true
-  },
-  {
-    "episode_id": "bf6dcacf-c711-4d06-814e-2ca462e3b9b1",
-    "step": 2,
-    "obs": {
-      "done": false,
-      "reward": 0.7502601055951177,
-      "metadata": {
-        "root_cause_hidden": true,
-        "step": 2,
-        "episode_id": "bf6dcacf-c711-4d06-814e-2ca462e3b9b1",
-        "total_reward_so_far": 0.8456,
-        "reward_breakdown": {
-          "action_score": 0.4,
-          "diagnosis_bonus": 0.5,
-          "penalty": 0.0,
-          "timing_bonus": 0.0,
-          "raw_reward": 1.1,
-          "final_reward": 0.75
-        }
-      },
-      "logs": {
-        "latency_spike": false,
-        "error_rate": 0.2608820129018744,
-        "log_anomaly_score": 0.6641705918024623,
-        "five_xx_error_rate": 0.10040451030074708
-      },
-      "observer": {
-        "server_b_health": "healthy",
-        "cpu_usage": 0.35386279148798455,
-        "memory_usage": 0.8206321223914689,
-        "db_connections": 188
-      },
-      "time_step": 2,
-      "last_action": "inspect_metrics",
-      "action_feedback": "Metrics collected. Observer signals have been refreshed.",
-      "incident_resolved": false,
-      "available_actions": [
-        "inspect_logs",
-        "inspect_metrics",
-        "check_deploy_history",
-        "declare_severity_low",
-        "declare_severity_high",
-        "restart_service",
-        "rollback_service",
-        "resolve_incident"
-      ]
-    },
-    "action": "declare_severity_low",
-    "reward": 0.6456563062257954,
-    "done": false,
-    "resolved": false,
-    "correct_action": null
-  },
-  {
-    "episode_id": "bf6dcacf-c711-4d06-814e-2ca462e3b9b1",
-    "step": 3,
-    "obs": {
-      "done": false,
-      "reward": 0.6456563062257954,
-      "metadata": {
-        "root_cause_hidden": true,
-        "step": 3,
-        "episode_id": "bf6dcacf-c711-4d06-814e-2ca462e3b9b1",
-        "total_reward_so_far": 1.4913,
-        "reward_breakdown": {
-          "action_score": 0.4,
-          "diagnosis_bonus": 0.0,
-          "penalty": 0.0,
-          "timing_bonus": 0.0,
-          "raw_reward": 0.6,
-          "final_reward": 0.646
-        }
-      },
-      "logs": {
-        "latency_spike": true,
-        "error_rate": 0.6645147676903138,
-        "log_anomaly_score": 0.572449566639348,
-        "five_xx_error_rate": 0.052472158604011464
-      },
-      "observer": {
-        "server_b_health": "degraded",
-        "cpu_usage": 0.31853994827741977,
-        "memory_usage": 0.9018573398692946,
-        "db_connections": 155
-      },
-      "time_step": 3,
-      "last_action": "declare_severity_low",
-      "action_feedback": "Incident severity declared as LOW.",
-      "incident_resolved": false,
-      "available_actions": [
-        "inspect_logs",
-        "inspect_metrics",
-        "check_deploy_history",
-        "declare_severity_low",
-        "declare_severity_high",
-        "restart_service",
-        "rollback_service",
-        "resolve_incident"
-      ]
-    },
-    "action": "restart_service",
-    "reward": 0.9241418199787566,
-    "done": false,
-    "resolved": false,
-    "correct_action": true
-  },
-  {
-    "episode_id": "bf6dcacf-c711-4d06-814e-2ca462e3b9b1",
-    "step": 4,
-    "obs": {
-      "done": false,
-      "reward": 0.9241418199787566,
-      "metadata": {
-        "root_cause_hidden": true,
-        "step": 4,
-        "episode_id": "bf6dcacf-c711-4d06-814e-2ca462e3b9b1",
-        "total_reward_so_far": 2.4154,
-        "reward_breakdown": {
-          "action_score": 1.0,
-          "diagnosis_bonus": 0.5,
-          "penalty": 0.0,
-          "timing_bonus": 0.5,
-          "raw_reward": 2.5,
-          "final_reward": 0.924
-        }
-      },
-      "logs": {
-        "latency_spike": false,
-        "error_rate": 0.30389985761992416,
-        "log_anomaly_score": 0.7776279574035247,
-        "five_xx_error_rate": 0.17509432797650323
-      },
-      "observer": {
-        "server_b_health": "degraded",
-        "cpu_usage": 0.38781609082216223,
-        "memory_usage": 0.9212294785950083,
-        "db_connections": 137
-      },
-      "time_step": 4,
-      "last_action": "restart_service",
-      "action_feedback": "Service restart initiated. Awaiting stabilisation.",
-      "incident_resolved": false,
-      "available_actions": [
-        "inspect_logs",
-        "inspect_metrics",
-        "check_deploy_history",
-        "declare_severity_low",
-        "declare_severity_high",
-        "restart_service",
-        "rollback_service",
-        "resolve_incident"
-      ]
-    },
-    "action": "inspect_metrics",
-    "reward": 0.6456563062257954,
-    "done": false,
-    "resolved": false,
-    "correct_action": null
-  },
-  {
-    "episode_id": "bf6dcacf-c711-4d06-814e-2ca462e3b9b1",
-    "step": 5,
-    "obs": {
-      "done": false,
-      "reward": 0.6456563062257954,
-      "metadata": {
-        "root_cause_hidden": true,
-        "step": 5,
-        "episode_id": "bf6dcacf-c711-4d06-814e-2ca462e3b9b1",
-        "total_reward_so_far": 3.0611,
-        "reward_breakdown": {
-          "action_score": 0.4,
-          "diagnosis_bonus": 0.0,
-          "penalty": 0.0,
-          "timing_bonus": 0.0,
-          "raw_reward": 0.6,
-          "final_reward": 0.646
-        }
-      },
-      "logs": {
-        "latency_spike": true,
-        "error_rate": 0.37027140266994496,
-        "log_anomaly_score": 0.607959800678998,
-        "five_xx_error_rate": 0.0
-      },
-      "observer": {
-        "server_b_health": "degraded",
-        "cpu_usage": 0.45480455029933997,
-        "memory_usage": 0.8667035903856823,
-        "db_connections": 129
-      },
-      "time_step": 5,
-      "last_action": "inspect_metrics",
-      "action_feedback": "Metrics collected. Observer signals have been refreshed.",
-      "incident_resolved": false,
-      "available_actions": [
-        "inspect_logs",
-        "inspect_metrics",
-        "check_deploy_history",
-        "declare_severity_low",
-        "declare_severity_high",
-        "restart_service",
-        "rollback_service",
-        "resolve_incident"
-      ]
-    },
     "action": "resolve_incident",
-    "reward": 0.679178699175393,
+    "reward": 0.9241418199787566,
     "done": true,
     "resolved": true,
-    "correct_action": null
+    "correct_action": true
   }
 ]

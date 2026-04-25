@@ -2,9 +2,9 @@
   "agent": "rule",
   "metrics": {
     "success_rate": 1.0,
-    "avg_reward": 2.351,
-    "MTTR": 3.0,
-    "efficiency": 0.3333333333333333,
-    "wrong_rate": 0.0
+    "avg_reward": 1.0518798794546118,
+    "MTTR": 2.0,
+    "efficiency": 0.0,
+    "wrong_rate": 0.5
   }
 }

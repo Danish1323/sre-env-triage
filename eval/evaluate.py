@@ -14,6 +14,9 @@ import matplotlib.pyplot as plt
 import sys
 sys.path.insert(0, str(Path(__file__).resolve().parents[1]))
 
+from dotenv import load_dotenv
+load_dotenv(dotenv_path=Path(__file__).resolve().parents[1] / ".env")
+
 from server.sre_decision_env_environment import SreDecisionEnvironment, MAX_STEPS
 from agents.random_agent import RandomAgent
 from agents.rule_agent import RuleBasedAgent
@@ -175,19 +178,40 @@ def run_evaluation(agent_type: str, num_episodes: int = 10):
         json.dump({"agent": agent_type, "metrics": metrics}, f, indent=2)
         
     # 9. HUGGING FACE DATASET EXPORT
-    hf_path = DATA_DIR / f"{agent_type}_hf_dataset.jsonl"
-    with open(hf_path, "w") as f:
+    txt_path = DATA_DIR / f"{agent_type}_hf_dataset.txt"
+    with open(txt_path, "w") as f:
         for step in all_steps_data:
-            input_data = {
-                "logs": step["obs"].get("logs", {}),
-                "observer": step["obs"].get("observer", {}),
-                "feedback": step["obs"].get("action_feedback", "")
-            }
-            row = {
-                "input": json.dumps(input_data),
-                "output": step["action"]
-            }
-            f.write(json.dumps(row) + "\\n")
+            # Constraint: keep only reward > 0.75 or correct_action == True
+            is_correct = step.get("correct_action", False)
+            reward = step.get("reward", 0.0)
+            
+            if not (reward > 0.7 or is_correct):
+                continue
+
+            logs = step["obs"].get("logs", {})
+            observer = step["obs"].get("observer", {})
+            
+            # Format logs inline
+            logs_list = []
+            for k, v in logs.items():
+                key = k.replace("log_anomaly_score", "anomaly_score").replace("five_xx_error_rate", "5xx_error_rate")
+                val = f"{v:.2f}" if isinstance(v, float) else str(v)
+                logs_list.append(f"{key}={val}")
+            logs_str = ", ".join(logs_list)
+            
+            # Format observer inline
+            obs_list = []
+            for k, v in observer.items():
+                key = k.replace("cpu_usage", "cpu").replace("memory_usage", "memory").replace("server_b_health", "health").replace("db_connections", "db_conn")
+                val = f"{v:.2f}" if isinstance(v, float) else str(v)
+                obs_list.append(f"{key}={val}")
+            obs_str = ", ".join(obs_list)
+            
+            # Pure text block using Instruction / Response format
+            state_description = f"Logs: {logs_str}\\nObserver: {obs_str}"
+            text_block = f"### Instruction:\\n{state_description}\\n\\n### Response:\\n{step['action']}"
+            
+            f.write(text_block + "\\n\\n---\\n\\n")
             
     logger.info(f"Evaluation complete for {agent_type}. Metrics: {metrics}")
     
