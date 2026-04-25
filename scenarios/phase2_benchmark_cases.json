@@ -1,0 +1,32 @@
+{
+  "phase": "phase2",
+  "description": "Expanded benchmark suite for Phase 2. 25 scenarios covering 5 root causes with 5 variations each.",
+  "max_steps": 10,
+  "cases": [
+    {"id": "sc001", "root_cause": "server_A_failure", "label": "Server A hard failure 1"},
+    {"id": "sc002", "root_cause": "server_A_failure", "label": "Server A hard failure 2"},
+    {"id": "sc003", "root_cause": "server_A_failure", "label": "Server A hard failure 3"},
+    {"id": "sc004", "root_cause": "server_A_failure", "label": "Server A hard failure 4"},
+    {"id": "sc005", "root_cause": "server_A_failure", "label": "Server A hard failure 5"},
+    {"id": "sc006", "root_cause": "memory_leak",      "label": "Slow memory leak 1"},
+    {"id": "sc007", "root_cause": "memory_leak",      "label": "Slow memory leak 2"},
+    {"id": "sc008", "root_cause": "memory_leak",      "label": "Slow memory leak 3"},
+    {"id": "sc009", "root_cause": "memory_leak",      "label": "Memory leak under load 1"},
+    {"id": "sc010", "root_cause": "memory_leak",      "label": "Memory leak under load 2"},
+    {"id": "sc011", "root_cause": "network_latency",  "label": "Network partition / high latency 1"},
+    {"id": "sc012", "root_cause": "network_latency",  "label": "Network partition / high latency 2"},
+    {"id": "sc013", "root_cause": "network_latency",  "label": "Network partition / high latency 3"},
+    {"id": "sc014", "root_cause": "network_latency",  "label": "Intermittent network latency 1"},
+    {"id": "sc015", "root_cause": "network_latency",  "label": "Intermittent network latency 2"},
+    {"id": "sc016", "root_cause": "transient_spike",  "label": "Transient traffic spike 1"},
+    {"id": "sc017", "root_cause": "transient_spike",  "label": "Transient traffic spike 2"},
+    {"id": "sc018", "root_cause": "transient_spike",  "label": "Transient traffic spike 3"},
+    {"id": "sc019", "root_cause": "transient_spike",  "label": "Transient spike — auto-resolved 1"},
+    {"id": "sc020", "root_cause": "transient_spike",  "label": "Transient spike — auto-resolved 2"},
+    {"id": "sc021", "root_cause": "no_issue",         "label": "False alarm — no real issue 1"},
+    {"id": "sc022", "root_cause": "no_issue",         "label": "False alarm — no real issue 2"},
+    {"id": "sc023", "root_cause": "no_issue",         "label": "False alarm — no real issue 3"},
+    {"id": "sc024", "root_cause": "no_issue",         "label": "False alarm — noisy metrics 1"},
+    {"id": "sc025", "root_cause": "no_issue",         "label": "False alarm — noisy metrics 2"}
+  ]
+}

@@ -64,6 +64,9 @@ class LogsSignal(Observation):
     log_anomaly_score: float = Field(
         default=0.0, description="Anomaly score from log pattern analysis (0-1 scale)."
     )
+    five_xx_error_rate: float = Field(
+        default=0.0, description="Rate of 5xx HTTP errors (0-1 scale)."
+    )
 
 
 class ObserverSignal(Observation):
@@ -75,6 +78,7 @@ class ObserverSignal(Observation):
     )
     cpu_usage: float = Field(default=0.0, description="Observed CPU usage (0-1 scale).")
     memory_usage: float = Field(default=0.0, description="Observed memory usage (0-1 scale).")
+    db_connections: int = Field(default=0, description="Number of active database connections.")
 
 
 class SreDecisionObservation(Observation):

@@ -1,0 +1,2 @@
+episode_id,agent_type,total_reward,steps,success,efficiency
+8a68ab41-0074-4d27-81a8-9e0e5d6c7f0a,rule,2.351,3,True,0.3333333333333333

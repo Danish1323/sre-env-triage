@@ -33,11 +33,11 @@ for _p in (_here, _parent):
 try:
     from ..models import VALID_ACTIONS, SreDecisionAction, SreDecisionObservation
     from .sensors import ROOT_CAUSES, get_logs_signal, get_observer_signal
-    from .rewards import compute_step_reward, compute_terminal_reward
+    from .rewards import compute_step_reward
 except ImportError:
     from models import VALID_ACTIONS, SreDecisionAction, SreDecisionObservation  # type: ignore
     from sensors import ROOT_CAUSES, get_logs_signal, get_observer_signal        # type: ignore
-    from rewards import compute_step_reward, compute_terminal_reward              # type: ignore
+    from rewards import compute_step_reward                                      # type: ignore
 
 logger = logging.getLogger(__name__)
 
@@ -79,6 +79,7 @@ class SreDecisionEnvironment(Environment):
         self._done: bool = False
         self._last_action: Optional[str] = None
         self._episode_rewards: list[float] = []
+        self._history: list[str] = []
 
     # -----------------------------------------------------------------
     # Reset
@@ -99,6 +100,7 @@ class SreDecisionEnvironment(Environment):
         self._done = False
         self._last_action = None
         self._episode_rewards = []
+        self._history = []
 
         logger.info(
             "Episode reset. root_cause=%s episode_id=%s",
@@ -147,36 +149,35 @@ class SreDecisionEnvironment(Environment):
         action_name = action.action_name.strip().lower()
         is_valid = action_name in VALID_ACTIONS
 
+        # --- Check episode termination before reward ---
+        is_terminal_action = action_name in TERMINAL_ACTIONS
+        timed_out = self._state.step_count >= MAX_STEPS
+        
+        if is_terminal_action or timed_out:
+            self._done = True
+
+        # --- Check diagnosis state ---
+        diagnosed = any(a in ["inspect_logs", "inspect_metrics"] for a in self._history)
+
         # --- Compute reward for this step ---
-        reward = compute_step_reward(
+        reward, step_breakdown = compute_step_reward(
             action_name=action_name,
             root_cause=self._root_cause,
             step=self._state.step_count,
             max_steps=MAX_STEPS,
             is_valid=is_valid,
+            history=self._history,
+            diagnosed=diagnosed,
+            resolved=is_terminal_action
         )
         self._episode_rewards.append(reward)
         self._last_action = action_name
+        self._history.append(action_name)
 
         # --- Determine feedback message ---
         feedback = self._build_feedback(action_name, is_valid)
 
-        # --- Check episode termination ---
-        is_terminal_action = action_name in TERMINAL_ACTIONS
-        timed_out = self._state.step_count >= MAX_STEPS
-
-        if is_terminal_action or timed_out:
-            self._done = True
-            terminal_reward = compute_terminal_reward(
-                resolved=is_terminal_action,
-                root_cause=self._root_cause,
-                last_action=action_name,
-                steps_taken=self._state.step_count,
-                max_steps=MAX_STEPS,
-            )
-            self._episode_rewards.append(terminal_reward)
-            reward += terminal_reward
-
+        if self._done:
             logger.info(
                 "Episode ended. root_cause=%s action=%s steps=%d total_reward=%.2f",
                 self._root_cause,
@@ -184,6 +185,9 @@ class SreDecisionEnvironment(Environment):
                 self._state.step_count,
                 sum(self._episode_rewards),
             )
+
+            
+        full_breakdown = step_breakdown
 
         # --- Build next observation ---
         logs = get_logs_signal(self._root_cause)
@@ -204,6 +208,7 @@ class SreDecisionEnvironment(Environment):
                 "step": self._state.step_count,
                 "episode_id": self._state.episode_id,
                 "total_reward_so_far": round(sum(self._episode_rewards), 4),
+                "reward_breakdown": full_breakdown,
             },
         )
 

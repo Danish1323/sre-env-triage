@@ -46,34 +46,39 @@ def get_logs_signal(root_cause: str) -> Dict[str, Any]:
 
     if root_cause == "server_A_failure":
         return {
-            "latency_spike": r > 0.15,          # high chance
-            "error_rate": round(0.55 + r * 0.35, 3),
-            "log_anomaly_score": round(0.70 + r * 0.25, 3),
+            "latency_spike": random.gauss(0.8, 0.2) > 0.5,
+            "error_rate": max(0.0, min(1.0, random.gauss(0.7, 0.15))),
+            "log_anomaly_score": max(0.0, min(1.0, random.gauss(0.8, 0.1))),
+            "five_xx_error_rate": max(0.0, min(1.0, random.gauss(0.6, 0.2))),
         }
     elif root_cause == "memory_leak":
         return {
-            "latency_spike": r > 0.40,
-            "error_rate": round(0.20 + r * 0.30, 3),
-            "log_anomaly_score": round(0.50 + r * 0.30, 3),
+            "latency_spike": random.gauss(0.6, 0.3) > 0.5,
+            "error_rate": max(0.0, min(1.0, random.gauss(0.3, 0.15))),
+            "log_anomaly_score": max(0.0, min(1.0, random.gauss(0.6, 0.2))),
+            "five_xx_error_rate": max(0.0, min(1.0, random.gauss(0.1, 0.1))),
         }
     elif root_cause == "network_latency":
         return {
-            "latency_spike": r > 0.20,
-            "error_rate": round(0.10 + r * 0.25, 3),
-            "log_anomaly_score": round(0.30 + r * 0.35, 3),
+            "latency_spike": random.gauss(0.9, 0.1) > 0.5,
+            "error_rate": max(0.0, min(1.0, random.gauss(0.2, 0.1))),
+            "log_anomaly_score": max(0.0, min(1.0, random.gauss(0.4, 0.15))),
+            "five_xx_error_rate": max(0.0, min(1.0, random.gauss(0.25, 0.15))),
         }
     elif root_cause == "transient_spike":
         # Misleading: sometimes looks like a real problem, sometimes benign
         return {
-            "latency_spike": r > 0.50,
-            "error_rate": round(0.05 + r * 0.20, 3),
-            "log_anomaly_score": round(0.10 + r * 0.40, 3),
+            "latency_spike": random.gauss(0.5, 0.4) > 0.5,
+            "error_rate": max(0.0, min(1.0, random.gauss(0.15, 0.2))),
+            "log_anomaly_score": max(0.0, min(1.0, random.gauss(0.3, 0.25))),
+            "five_xx_error_rate": max(0.0, min(1.0, random.gauss(0.05, 0.1))),
         }
     else:  # no_issue
         return {
-            "latency_spike": r > 0.90,          # rare false-positive
-            "error_rate": round(r * 0.05, 3),
-            "log_anomaly_score": round(r * 0.10, 3),
+            "latency_spike": random.gauss(0.1, 0.1) > 0.5,
+            "error_rate": max(0.0, min(1.0, random.gauss(0.02, 0.02))),
+            "log_anomaly_score": max(0.0, min(1.0, random.gauss(0.05, 0.05))),
+            "five_xx_error_rate": max(0.0, min(1.0, random.gauss(0.01, 0.01))),
         }
 
 
@@ -97,33 +102,38 @@ def get_observer_signal(root_cause: str) -> Dict[str, Any]:
         health = random.choice(["degraded", "down", "down"])  # weighted toward down
         return {
             "server_b_health": health,
-            "cpu_usage": round(0.60 + r * 0.35, 3),
-            "memory_usage": round(0.40 + r * 0.40, 3),
+            "cpu_usage": max(0.0, min(1.0, random.gauss(0.8, 0.15))),
+            "memory_usage": max(0.0, min(1.0, random.gauss(0.6, 0.2))),
+            "db_connections": int(max(0, random.gauss(50, 20))),
         }
     elif root_cause == "memory_leak":
         health = random.choice(["healthy", "degraded", "degraded"])
         return {
             "server_b_health": health,
-            "cpu_usage": round(0.30 + r * 0.30, 3),
-            "memory_usage": round(0.70 + r * 0.28, 3),
+            "cpu_usage": max(0.0, min(1.0, random.gauss(0.4, 0.15))),
+            "memory_usage": max(0.0, min(1.0, random.gauss(0.9, 0.05))),
+            "db_connections": int(max(0, random.gauss(150, 30))),
         }
     elif root_cause == "network_latency":
         health = random.choice(["healthy", "degraded"])
         return {
             "server_b_health": health,
-            "cpu_usage": round(0.20 + r * 0.30, 3),
-            "memory_usage": round(0.20 + r * 0.30, 3),
+            "cpu_usage": max(0.0, min(1.0, random.gauss(0.3, 0.1))),
+            "memory_usage": max(0.0, min(1.0, random.gauss(0.3, 0.1))),
+            "db_connections": int(max(0, random.gauss(800, 200))), # Spike in db conns
         }
     elif root_cause == "transient_spike":
         health = random.choice(["healthy", "healthy", "degraded"])
         return {
             "server_b_health": health,
-            "cpu_usage": round(0.40 + r * 0.30, 3),
-            "memory_usage": round(0.30 + r * 0.25, 3),
+            "cpu_usage": max(0.0, min(1.0, random.gauss(0.6, 0.2))),
+            "memory_usage": max(0.0, min(1.0, random.gauss(0.4, 0.15))),
+            "db_connections": int(max(0, random.gauss(300, 100))),
         }
     else:  # no_issue
         return {
             "server_b_health": "healthy",
-            "cpu_usage": round(r * 0.20, 3),
-            "memory_usage": round(r * 0.20, 3),
+            "cpu_usage": max(0.0, min(1.0, random.gauss(0.1, 0.05))),
+            "memory_usage": max(0.0, min(1.0, random.gauss(0.15, 0.05))),
+            "db_connections": int(max(0, random.gauss(100, 10))),
         }

@@ -1,0 +1,138 @@
+[
+  {
+    "episode_id": "8a68ab41-0074-4d27-81a8-9e0e5d6c7f0a",
+    "step": 0,
+    "obs": {
+      "done": false,
+      "reward": null,
+      "metadata": {},
+      "logs": {
+        "latency_spike": false,
+        "error_rate": 0.018071209735457196,
+        "log_anomaly_score": 0.07248962582677262,
+        "five_xx_error_rate": 0.019990281889853377
+      },
+      "observer": {
+        "server_b_health": "healthy",
+        "cpu_usage": 0.16308806774093587,
+        "memory_usage": 0.0902829227692967,
+        "db_connections": 89
+      },
+      "time_step": 0,
+      "last_action": null,
+      "action_feedback": "A new SRE incident has been detected. Begin your investigation.",
+      "incident_resolved": false,
+      "available_actions": [
+        "inspect_logs",
+        "inspect_metrics",
+        "check_deploy_history",
+        "declare_severity_low",
+        "declare_severity_high",
+        "restart_service",
+        "rollback_service",
+        "resolve_incident"
+      ]
+    },
+    "action": "inspect_logs",
+    "reward": 0.7,
+    "done": false,
+    "resolved": false,
+    "correct_action": null
+  },
+  {
+    "episode_id": "8a68ab41-0074-4d27-81a8-9e0e5d6c7f0a",
+    "step": 1,
+    "obs": {
+      "done": false,
+      "reward": 0.7,
+      "metadata": {
+        "root_cause_hidden": true,
+        "step": 1,
+        "episode_id": "8a68ab41-0074-4d27-81a8-9e0e5d6c7f0a",
+        "total_reward_so_far": 0.7,
+        "reward_breakdown": {
+          "useful_diagnostic": 0.7
+        }
+      },
+      "logs": {
+        "latency_spike": false,
+        "error_rate": 0.03156653038093092,
+        "log_anomaly_score": 0.038393633983501756,
+        "five_xx_error_rate": 0.004365782525158525
+      },
+      "observer": {
+        "server_b_health": "healthy",
+        "cpu_usage": 0.15929649521631542,
+        "memory_usage": 0.1732057388066287,
+        "db_connections": 107
+      },
+      "time_step": 1,
+      "last_action": "inspect_logs",
+      "action_feedback": "Logs scanned. New signals are reflected in the observation.",
+      "incident_resolved": false,
+      "available_actions": [
+        "inspect_logs",
+        "inspect_metrics",
+        "check_deploy_history",
+        "declare_severity_low",
+        "declare_severity_high",
+        "restart_service",
+        "rollback_service",
+        "resolve_incident"
+      ]
+    },
+    "action": "inspect_metrics",
+    "reward": 0.7,
+    "done": false,
+    "resolved": false,
+    "correct_action": null
+  },
+  {
+    "episode_id": "8a68ab41-0074-4d27-81a8-9e0e5d6c7f0a",
+    "step": 2,
+    "obs": {
+      "done": false,
+      "reward": 0.7,
+      "metadata": {
+        "root_cause_hidden": true,
+        "step": 2,
+        "episode_id": "8a68ab41-0074-4d27-81a8-9e0e5d6c7f0a",
+        "total_reward_so_far": 1.4,
+        "reward_breakdown": {
+          "useful_diagnostic": 0.7
+        }
+      },
+      "logs": {
+        "latency_spike": false,
+        "error_rate": 0.0,
+        "log_anomaly_score": 0.0,
+        "five_xx_error_rate": 0.01839142623581158
+      },
+      "observer": {
+        "server_b_health": "healthy",
+        "cpu_usage": 0.13735883905604124,
+        "memory_usage": 0.1741177713040986,
+        "db_connections": 103
+      },
+      "time_step": 2,
+      "last_action": "inspect_metrics",
+      "action_feedback": "Metrics collected. Observer signals have been refreshed.",
+      "incident_resolved": false,
+      "available_actions": [
+        "inspect_logs",
+        "inspect_metrics",
+        "check_deploy_history",
+        "declare_severity_low",
+        "declare_severity_high",
+        "restart_service",
+        "rollback_service",
+        "resolve_incident"
+      ]
+    },
+    "action": "resolve_incident",
+    "reward": 0.951,
+    "done": true,
+    "resolved": true,
+    "correct_action": true
+  }
+]

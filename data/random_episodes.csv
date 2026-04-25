@@ -1,0 +1,2 @@
+episode_id,agent_type,total_reward,steps,success,efficiency
+bf6dcacf-c711-4d06-814e-2ca462e3b9b1,random,3.7402427020999673,6,True,0.3333333333333333

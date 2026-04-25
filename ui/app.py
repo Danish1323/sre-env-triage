@@ -1,18 +1,19 @@
 """
-Phase 1 Gradio UI — SRE Decision Environment (improved).
+Phase 2 Gradio UI — SRE Decision Environment (Debug & RL Friendly).
 
-Changes vs v1:
-- Debug mode toggle reveals the hidden root cause
-- Actions are grouped: Diagnostic vs Remediation
-- Per-step reward explanation shown
-- Full agent LLM reasoning displayed
-- Episode history table with rewards per step
+Changes vs Phase 1:
+- Debug mode reveals hidden root cause
+- Layout mapped to RL flow: State/Observation -> Decision -> Outcome
+- Raw observation JSON view
+- Dedicated Agent Reasoning UI component
+- Structured DataFrame history for easy debugging
 """
 
 import os
 import sys
 from pathlib import Path
 from typing import Optional
+import json
 
 sys.path.insert(0, str(Path(__file__).resolve().parents[1]))
 
@@ -46,7 +47,7 @@ ACTION_LABELS.update({a: f"⚡ {a}" for a in REMEDIATION})
 # ── Global state ──────────────────────────────────────────────────────────────
 env = SreDecisionEnvironment()
 llm_client: Optional[OpenRouterLLMClient] = None
-_history = []          # list of {action, reward, feedback}
+_history = []          # list of {step, action, reward, feedback, reasoning}
 _current_obs = None
 _episode_total_reward = 0.0
 _debug_mode = False
@@ -66,15 +67,15 @@ def _try_init_llm() -> str:
 
 # ── Reward explanation ────────────────────────────────────────────────────────
 def _explain_reward(reward: float, action_name: str) -> str:
-    if reward >= 1.0:
-        return f"✅ **Correct fix!** `{action_name}` resolved the root cause."
-    if reward == -1.0:
-        return f"❌ **Wrong fix!** `{action_name}` was harmful for this root cause."
-    if reward > 0:
-        return f"🔍 **Info gathered.** `{action_name}` is a safe diagnostic action (+{reward:.2f})."
-    if reward < -0.3:
-        return f"⚠️ **Penalty.** Check the action name or the episode timed out."
-    return f"↔️  Neutral. `{action_name}` had no significant effect."
+    if reward >= 0.75:
+        return f"✅ **Correct fix!** `{action_name}` is extremely close to the root cause."
+    if reward >= 0.60:
+        return f"🔍 **Useful Info.** `{action_name}` gathered highly relevant signals or was a sequential diagnosis."
+    if reward >= 0.40:
+        return f"↔️ **Sub-optimal.** `{action_name}` was generic or slightly off-target."
+    if reward >= 0.20:
+        return f"❌ **Harmful/Wrong!** `{action_name}` exacerbated the problem or was an un-diagnosed blind guess."
+    return f"⚠️ **Invalid/Repeated.** Action '{action_name}' is penalized heavily."
 
 
 # ── Observation display ───────────────────────────────────────────────────────
@@ -96,33 +97,74 @@ def _obs_md(obs, debug: bool) -> str:
         "|--------|-------|",
         f"| 🕐 Latency spike | `{logs.get('latency_spike', 'N/A')}` |",
         f"| ❗ Error rate | `{logs.get('error_rate', 'N/A')}` |",
+        f"| 📈 5xx Error rate | `{logs.get('five_xx_error_rate', 'N/A')}` |",
         f"| 🔬 Anomaly score | `{logs.get('log_anomaly_score', 'N/A')}` |",
         f"| 🖥️ Server B health | `{obs_sig.get('server_b_health', 'N/A')}` |",
         f"| ⚙️ CPU usage | `{obs_sig.get('cpu_usage', 'N/A')}` |",
         f"| 💾 Memory usage | `{obs_sig.get('memory_usage', 'N/A')}` |",
-        "",
-        f"**Feedback:** {d.get('action_feedback', '')}",
+        f"| 🔌 DB Connections | `{obs_sig.get('db_connections', 'N/A')}` |",
     ]
     if d.get("incident_resolved"):
         lines.append("\n---\n🏁 **Episode complete. Click Reset to start again.**")
     return "\n".join(lines)
 
-
-def _history_md() -> str:
+def _history_data() -> list[list]:
     if not _history:
-        return "_No actions yet._"
-    rows = ["| # | Action | Reward | Type |",
-            "|---|--------|--------|------|"]
-    for i, h in enumerate(_history, 1):
+        return []
+    
+    rows = []
+    for h in _history:
         a = h["action"]
         r = h["reward"]
-        tag = "🔍 Diagnostic" if a in DIAGNOSTIC else "⚡ Remediation"
         sign = f"+{r:.2f}" if r >= 0 else f"{r:.2f}"
-        rows.append(f"| {i} | `{a}` | **{sign}** | {tag} |")
-    return "\n".join(rows)
+        rows.append([
+            h["step"],
+            f"`{a}`",
+            sign,
+            h.get("feedback", ""),
+            h.get("reasoning", "N/A")[:100] + "..." if h.get("reasoning") else "N/A"
+        ])
+    return rows
 
 
 # ── Event handlers ────────────────────────────────────────────────────────────
+def _blank_outputs():
+    return (
+        _obs_md(None, _debug_mode),
+        {},
+        "0.00",
+        "—",
+        {},
+        "⚠️ Click Reset first!",
+        "N/A",
+        _history_data(),
+        gr.update(interactive=False),
+        gr.update(interactive=False)
+    )
+
+def _get_outputs(obs, action_name, reward, reasoning="Manual action"):
+    sign = f"+{reward:.2f}" if reward >= 0 else f"{reward:.2f}"
+    explanation = _explain_reward(reward, action_name)
+    breakdown = obs.metadata.get("reward_breakdown", {})
+    
+    feedback = f"{explanation}\n\n**Environment Feedback:**\n> {obs.action_feedback}"
+    if obs.incident_resolved:
+        feedback += f"\n\n🏁 **Episode complete. Total reward: {_episode_total_reward:.2f}**"
+
+    return (
+        _obs_md(obs, _debug_mode),
+        obs.model_dump(),
+        f"{_episode_total_reward:.2f}",
+        sign,
+        breakdown,
+        feedback,
+        reasoning,
+        _history_data(),
+        gr.update(interactive=False),
+        gr.update(interactive=False)
+    )
+
+
 def reset_episode(debug):
     global _current_obs, _history, _episode_total_reward, _debug_mode
     _debug_mode = bool(debug)
@@ -131,10 +173,15 @@ def reset_episode(debug):
     _episode_total_reward = 0.0
     return (
         _obs_md(_current_obs, _debug_mode),
-        _history_md(),
+        _current_obs.model_dump(),
         "0.00",
         "—",
+        {},
         "🟢 New incident started. Investigate before you remediate!",
+        "N/A",
+        _history_data(),
+        gr.update(interactive=True),
+        gr.update(interactive=True)
     )
 
 
@@ -142,33 +189,25 @@ def manual_action(action_display_name: str, debug: bool):
     global _current_obs, _history, _episode_total_reward, _debug_mode
     _debug_mode = bool(debug)
 
-    if _current_obs is None:
-        return _obs_md(None, _debug_mode), _history_md(), "0.00", "—", "⚠️ Click Reset first!"
-    if _current_obs.incident_resolved:
-        return _obs_md(_current_obs, _debug_mode), _history_md(), f"{_episode_total_reward:.2f}", "—", "Episode over — click Reset."
+    if _current_obs is None: return _blank_outputs()
+    if _current_obs.incident_resolved: return _get_outputs(_current_obs, _history[-1]["action"] if _history else "N/A", 0)
 
-    # Strip the emoji prefix we added for display
     action_name = action_display_name.replace("🔍 ", "").replace("⚡ ", "").strip()
-
     action = SreDecisionAction(action_name=action_name)
+    
     _current_obs = env.step(action)
     reward = _current_obs.reward or 0.0
     _episode_total_reward += reward
-    _history.append({"action": action_name, "reward": reward, "feedback": _current_obs.action_feedback or ""})
+    
+    _history.append({
+        "step": _current_obs.metadata.get("step", 0),
+        "action": action_name, 
+        "reward": reward, 
+        "feedback": _current_obs.action_feedback or "",
+        "reasoning": "Manual Action"
+    })
 
-    sign = f"+{reward:.2f}" if reward >= 0 else f"{reward:.2f}"
-    explanation = _explain_reward(reward, action_name)
-    status = f"{explanation}\n\n**Action sent:** `{action_name}`"
-    if _current_obs.incident_resolved:
-        status += f"\n\n🏁 Episode complete. Total reward: **{_episode_total_reward:.2f}**"
-
-    return (
-        _obs_md(_current_obs, _debug_mode),
-        _history_md(),
-        f"{_episode_total_reward:.2f}",
-        sign,
-        status,
-    )
+    return _get_outputs(_current_obs, action_name, reward, "Manual execution. No LLM reasoning.")
 
 
 def agent_action(debug: bool):
@@ -176,12 +215,12 @@ def agent_action(debug: bool):
     _debug_mode = bool(debug)
 
     if llm_client is None:
-        return _obs_md(_current_obs, _debug_mode), _history_md(), f"{_episode_total_reward:.2f}", "—", \
-               "❌ LLM not available. Set OPENROUTER_API_KEY in your .env file."
-    if _current_obs is None:
-        return _obs_md(None, _debug_mode), _history_md(), "0.00", "—", "⚠️ Click Reset first!"
-    if _current_obs.incident_resolved:
-        return _obs_md(_current_obs, _debug_mode), _history_md(), f"{_episode_total_reward:.2f}", "—", "Episode over — click Reset."
+        outs = list(_blank_outputs())
+        outs[5] = "❌ LLM not available. Set OPENROUTER_API_KEY in your .env file."
+        return tuple(outs)
+
+    if _current_obs is None: return _blank_outputs()
+    if _current_obs.incident_resolved: return _get_outputs(_current_obs, _history[-1]["action"] if _history else "N/A", 0)
 
     obs_dict = _current_obs.model_dump()
     user_msg = build_user_prompt(obs_dict, _history)
@@ -202,26 +241,16 @@ def agent_action(debug: bool):
     _current_obs = env.step(action)
     reward = _current_obs.reward or 0.0
     _episode_total_reward += reward
-    _history.append({"action": action_name, "reward": reward, "feedback": _current_obs.action_feedback or ""})
+    
+    _history.append({
+        "step": _current_obs.metadata.get("step", 0),
+        "action": action_name, 
+        "reward": reward, 
+        "feedback": _current_obs.action_feedback or "",
+        "reasoning": llm_response
+    })
 
-    sign = f"+{reward:.2f}" if reward >= 0 else f"{reward:.2f}"
-    explanation = _explain_reward(reward, action_name)
-
-    status = (
-        f"🤖 **Agent picked:** `{action_name}`\n\n"
-        f"{explanation}\n\n"
-        f"---\n**Full agent reasoning:**\n```\n{llm_response[:600]}\n```"
-    )
-    if _current_obs.incident_resolved:
-        status += f"\n\n🏁 Episode complete. Total reward: **{_episode_total_reward:.2f}**"
-
-    return (
-        _obs_md(_current_obs, _debug_mode),
-        _history_md(),
-        f"{_episode_total_reward:.2f}",
-        sign,
-        status,
-    )
+    return _get_outputs(_current_obs, action_name, reward, llm_response)
 
 
 # ── Build UI ──────────────────────────────────────────────────────────────────
@@ -230,53 +259,81 @@ def build_ui() -> gr.Blocks:
     labeled_actions = [ACTION_LABELS[a] for a in VALID_ACTIONS]
 
     with gr.Blocks(
-        title="SRE Decision Env — Phase 1",
-        theme=gr.themes.Soft(primary_hue="indigo", neutral_hue="slate"),
+        title="SRE Decision Env — Phase 2"
     ) as demo:
 
-        gr.Markdown("# 🚨 SRE Decision Environment — Phase 1")
+        gr.Markdown("# 🚨 SRE Decision Environment — Phase 2")
         gr.Markdown(
             "**Diagnose the hidden root cause from noisy partial signals. "
             "Use diagnostic actions to gather clues, then pick the right fix.**"
         )
-        gr.Markdown(f"**LLM:** {llm_status}")
-
-        gr.Markdown(
-            "> 🔍 **Diagnostic actions** (inspect_logs, inspect_metrics, etc.) → always safe, small +reward  \n"
-            "> ⚡ **Remediation actions** (restart, rollback, resolve) → big +reward if correct, **-1 if wrong**"
-        )
+        
+        with gr.Row():
+            gr.Markdown(f"**LLM Status:** {llm_status}")
+            debug_toggle = gr.Checkbox(label="🔓 Debug mode (reveal hidden state)", value=False)
+            reset_btn = gr.Button("🔄 Reset Episode", variant="primary")
 
         with gr.Row():
-            # ── Left: observation ───────────────────────────────────────────
-            with gr.Column(scale=2):
+            # ── Column 1: State & Observation ──────────────────────────────────
+            with gr.Column(scale=1, variant="panel"):
+                gr.Markdown("### 1. State & Observation")
                 obs_display = gr.Markdown(value="_Click Reset to start._")
-                with gr.Row():
-                    reward_total = gr.Textbox(label="Total Reward", value="0.00", interactive=False)
-                    reward_step  = gr.Textbox(label="Last Step Reward", value="—", interactive=False)
+                gr.Markdown("**Raw JSON (for RL tracing):**")
+                obs_json = gr.JSON(value={}, label="Observation JSON")
 
-            # ── Right: controls ─────────────────────────────────────────────
-            with gr.Column(scale=1):
-                debug_toggle = gr.Checkbox(label="🔓 Debug mode (show root cause)", value=False)
-                reset_btn = gr.Button("🔄 Reset / New Incident", variant="primary")
-
-                gr.Markdown("**Manual action:**")
+            # ── Column 2: Action & Decision ────────────────────────────────────
+            with gr.Column(scale=1, variant="panel"):
+                gr.Markdown("### 2. Action & Decision")
+                
+                gr.Markdown("#### Manual Action")
                 action_dropdown = gr.Dropdown(
                     choices=labeled_actions,
                     value=labeled_actions[0],   # 🔍 inspect_logs
                     label="Choose Action",
                 )
-                manual_btn = gr.Button("▶ Execute Action")
+                manual_btn = gr.Button("▶ Execute Manual Action")
 
-                gr.Markdown("**LLM agent:**")
-                agent_btn = gr.Button("🤖 Agent Step", variant="secondary")
+                gr.Markdown("#### Agent Action")
+                agent_btn = gr.Button("🤖 Let Agent Decide", variant="secondary")
+                
+                gr.Markdown("#### Agent Reasoning")
+                agent_reasoning_md = gr.Markdown(value="_No agent reasoning yet._")
 
-        status_box = gr.Textbox(label="Step Result / Agent Reasoning", lines=8, interactive=False)
+            # ── Column 3: Outcome & Reward ─────────────────────────────────────
+            with gr.Column(scale=1, variant="panel"):
+                gr.Markdown("### 3. Outcome & Reward")
+                feedback_md = gr.Markdown(value="_No feedback yet._")
+                
+                with gr.Row():
+                    reward_step  = gr.Textbox(label="Step Reward", value="—", interactive=False)
+                    reward_total = gr.Textbox(label="Total Reward", value="0.00", interactive=False)
+                    
+                gr.Markdown("**Reward Breakdown:**")
+                reward_breakdown_json = gr.JSON(value={}, label="Breakdown")
 
+        # ── History Table ──────────────────────────────────────────────────
         gr.Markdown("### Episode History")
-        history_display = gr.Markdown("_No actions yet._")
+        history_df = gr.Dataframe(
+            headers=["Step", "Action", "Reward", "Feedback", "Rationale Preview"],
+            datatype=["number", "markdown", "str", "str", "str"],
+            interactive=False,
+            row_count=5,
+            wrap=True
+        )
 
         # ── Wire events ──────────────────────────────────────────────────────
-        outs = [obs_display, history_display, reward_total, reward_step, status_box]
+        outs = [
+            obs_display, 
+            obs_json, 
+            reward_total, 
+            reward_step, 
+            reward_breakdown_json, 
+            feedback_md, 
+            agent_reasoning_md, 
+            history_df,
+            manual_btn,
+            agent_btn
+        ]
 
         reset_btn.click(fn=reset_episode, inputs=[debug_toggle], outputs=outs)
         manual_btn.click(fn=manual_action, inputs=[action_dropdown, debug_toggle], outputs=outs)
@@ -290,4 +347,6 @@ if __name__ == "__main__":
     _host = os.environ.get("GRADIO_SERVER_NAME", "0.0.0.0")
     _port = int(os.environ.get("GRADIO_SERVER_PORT", "7860"))
     ui = build_ui()
-    ui.launch(server_name=_host, server_port=_port, share=False)
+    
+    import gradio as gr
+    ui.launch(server_name=_host, server_port=_port, share=False, theme=gr.themes.Soft(primary_hue="indigo", neutral_hue="slate"))

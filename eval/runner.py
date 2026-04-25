@@ -36,8 +36,8 @@ from llm.prompts import SYSTEM_PROMPT, build_user_prompt, parse_action
 
 logger = logging.getLogger(__name__)
 logging.basicConfig(level=logging.INFO, format="%(asctime)s %(levelname)s %(message)s")
-
-BENCHMARK_PATH = Path(__file__).resolve().parents[1] / "scenarios" / "benchmark_cases.json"
+BENCHMARK_PATH_P1 = Path(__file__).resolve().parents[1] / "scenarios" / "benchmark_cases.json"
+BENCHMARK_PATH_P2 = Path(__file__).resolve().parents[1] / "scenarios" / "phase2_benchmark_cases.json"
 ASSETS_DIR = Path(__file__).resolve().parents[1] / "assets"
 ASSETS_DIR.mkdir(exist_ok=True)
 
@@ -111,6 +111,7 @@ def run_episode(
         "total_reward": round(total_reward, 4),
         "resolved": resolved,
         "last_action": action_name,
+        "reward_breakdown": obs.metadata.get("reward_breakdown", {})
     }
 
 
@@ -120,7 +121,8 @@ def run_episode(
 
 def run_benchmark(phase: str = "phase1", verbose: bool = False) -> None:
     """Run all benchmark cases and save results + plots."""
-    with open(BENCHMARK_PATH) as f:
+    benchmark_file = BENCHMARK_PATH_P2 if phase == "phase2" else BENCHMARK_PATH_P1
+    with open(benchmark_file) as f:
         bench = json.load(f)
 
     cases = bench["cases"]
