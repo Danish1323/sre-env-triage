@@ -6,8 +6,12 @@
 
 """Sre Decision Env Environment."""
 
-from .client import SreDecisionEnv
-from .models import SreDecisionAction, SreDecisionObservation
+try:
+    from .client import SreDecisionEnv
+    from .models import SreDecisionAction, SreDecisionObservation
+except ImportError:
+    from client import SreDecisionEnv  # type: ignore
+    from models import SreDecisionAction, SreDecisionObservation  # type: ignore
 
 __all__ = [
     "SreDecisionAction",

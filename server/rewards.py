@@ -18,8 +18,7 @@ ACTION_EFFECT_MAP = {
     "check_deploy_history": ["deploy_issue"],
 
     "restart_service": ["server_A_failure", "memory_leak"],
-    "rollback_service": ["deploy_issue", "server_A_failure"], # adding server failure here as fallback
-    "scale_up": ["high_load", "memory_leak"],
+    "rollback_service": ["deploy_issue", "server_A_failure"],
 
     "declare_severity_low": ["any"],
     "declare_severity_high": ["any"],
@@ -60,7 +59,7 @@ def compute_step_reward(
     # 1. Base Action Score
     if action_name == "resolve_incident" and root_cause in ACTION_EFFECT_MAP["resolve_incident"]:
         action_score = 1.0
-    elif action_name in ["restart_service", "rollback_service", "scale_up"] and root_cause in ACTION_EFFECT_MAP.get(action_name, []):
+    elif action_name in ["restart_service", "rollback_service"] and root_cause in ACTION_EFFECT_MAP.get(action_name, []):
         action_score = 1.0 # Directly solves
     elif action_name in ["inspect_logs", "inspect_metrics"] or "any" in ACTION_EFFECT_MAP.get(action_name, []):
         action_score = 0.4 # Diagnostic
@@ -73,7 +72,7 @@ def compute_step_reward(
     
     # 2. Sequential Logic (Diagnosis Bonus / Penalty)
     diagnosis_bonus = 0.0
-    if action_name in ["restart_service", "rollback_service", "scale_up", "resolve_incident"]:
+    if action_name in ["restart_service", "rollback_service", "resolve_incident"]:
         if not diagnosed:
             diagnosis_bonus = -1.0 # Blind guess penalty
         else:
@@ -125,3 +124,34 @@ def compute_step_reward(
     breakdown["final_reward"] = round(final_reward, 3)
 
     return final_reward, breakdown
+
+
+def compute_terminal_reward(
+    resolved: bool,
+    root_cause: str,
+    action: Optional[str],
+    step: int,
+    max_steps: int,
+) -> float:
+    """
+    Compute the terminal reward at the end of an episode.
+
+    Args:
+        resolved: Whether the incident was successfully resolved.
+        root_cause: The hidden root cause for this episode.
+        action: The final action taken (may be None on timeout).
+        step: The step at which the episode ended.
+        max_steps: Maximum allowed steps per episode.
+
+    Returns:
+        A float reward: positive when resolved early, negative on timeout.
+    """
+    if not resolved:
+        return -1.0  # Timeout / failure penalty
+
+    if max_steps <= 0:
+        return 0.1
+
+    steps_fraction = step / max_steps
+    # Reward resolving early; discount for resolving late
+    return max(0.1, 1.0 - steps_fraction)

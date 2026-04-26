@@ -59,12 +59,60 @@ uv run python -m eval.evaluate --agent random --num_episodes 100
 
 ---
 
+## Running Tests
+
+```bash
+# Install dependencies (dev extras include pytest)
+uv sync --extra dev
+
+# Run the full test suite
+python -m pytest tests/ -v
+```
+
+Tests live in `tests/`:
+- `tests/test_phase1.py` — sensor, reward, environment, and action-model unit tests.
+- `tests/test_env_contract.py` — OpenEnv step/reset contract tests (canonical dict shape, field validation, invalid-action penalty).
+
+---
+
+## Client Usage
+
+`SreDecisionEnv` connects to a running OpenEnv server (HTTP + WebSocket) and communicates using `SreDecisionAction` / `SreDecisionObservation` types.
+
+```python
+from client import SreDecisionEnv
+from models import SreDecisionAction
+
+# Connect to a running server (start with: uvicorn server.app:app --port 8000)
+with SreDecisionEnv(base_url="http://localhost:8000") as env:
+    result = env.reset()
+    print("Initial observation:", result.observation.logs)
+
+    result = env.step(SreDecisionAction(
+        action_name="inspect_logs",
+        rationale="Check for latency spikes"
+    ))
+    print("Reward:", result.reward)
+    print("Done:", result.done)
+    print("Logs:", result.observation.logs)
+    print("Observer:", result.observation.observer)
+```
+
+**Valid `action_name` values:**
+`inspect_logs`, `inspect_metrics`, `check_deploy_history`, `declare_severity_low`,
+`declare_severity_high`, `restart_service`, `rollback_service`, `resolve_incident`
+
+---
+
 ## Project Structure
 
 - `server/`: Contains the core OpenEnv implementation (`sre_decision_env_environment.py`), strictly bounded distance-aware `rewards.py`, and noisy `sensors.py`.
 - `llm/`: Client interfaces for model inference (e.g., OpenRouter).
 - `models.py`: Defines the `SreDecisionAction` and `SreDecisionObservation` schemas.
+- `client.py`: `SreDecisionEnv` OpenEnv client — connects to the server and sends typed actions/observations.
 - `ui/`: Gradio application for visual interaction and step-by-step debugging.
 - `eval/`: Automated RL evaluation pipeline (`evaluate.py`) that generates HF datasets, CSV metrics, and training curves.
 - `data/`: Exported episode metrics and raw instruction/response textual datasets.
 - `reports/plots/`: Auto-generated training comparison curves.
+- `tests/`: pytest test suite (run with `python -m pytest tests/ -v`).
+

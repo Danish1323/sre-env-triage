@@ -23,21 +23,20 @@ from openenv.core.env_server.types import State
 import sys as _sys
 from pathlib import Path as _Path
 
-# Ensure parent dirs are on sys.path so imports work both as package and standalone.
-_here = _Path(__file__).resolve().parent          # .../server/
-_parent = _here.parent                             # .../sre_decision_env/
-for _p in (_here, _parent):
-    if str(_p) not in _sys.path:
-        _sys.path.insert(0, str(_p))
+# Ensure the repo root is on sys.path so imports work both as an installed
+# package (sre_decision_env.*) and when executed standalone / via OpenEnv runtime.
+_repo_root = _Path(__file__).resolve().parent.parent
+if str(_repo_root) not in _sys.path:
+    _sys.path.insert(0, str(_repo_root))
 
 try:
+    from models import VALID_ACTIONS, SreDecisionAction, SreDecisionObservation  # type: ignore
+    from server.sensors import ROOT_CAUSES, get_logs_signal, get_observer_signal  # type: ignore
+    from server.rewards import compute_step_reward  # type: ignore
+except ImportError:
     from ..models import VALID_ACTIONS, SreDecisionAction, SreDecisionObservation
     from .sensors import ROOT_CAUSES, get_logs_signal, get_observer_signal
     from .rewards import compute_step_reward
-except ImportError:
-    from models import VALID_ACTIONS, SreDecisionAction, SreDecisionObservation  # type: ignore
-    from sensors import ROOT_CAUSES, get_logs_signal, get_observer_signal        # type: ignore
-    from rewards import compute_step_reward                                      # type: ignore
 
 logger = logging.getLogger(__name__)
 
