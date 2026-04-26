@@ -8,14 +8,24 @@ A multi-agent SRE incident-response environment built on the [OpenEnv](https://o
 
 ---
 
-## Phase 1 Overview
+## Phase 3 Overview & Evaluation
 
-Phase 1 provides the foundational environment:
-- **Hidden Root Causes**: e.g., `server_A_failure`, `memory_leak`, `network_latency`, `transient_spike`.
-- **Sensors**: Noisy "logs" and "observer" modules generate stochastic, partial signals.
-- **Orchestrator Backend**: Powered by `meta-llama/llama-3.2-3b-instruct` via the OpenRouter API.
-- **UI**: A Gradio web UI to step through the environment manually or using the agent.
-- **Evaluation**: A benchmark suite (`scenarios/benchmark_cases.json`) to establish a baseline performance.
+The environment natively supports Reinforcement Learning and Language Model fine-tuning through strict formatting and distance-aware reward scaling (bounded `0.01` to `0.99`). 
+
+We establish continuous metric reporting to track agent learning over time.
+
+### Training Curves (Untrained Baseline vs Rule-based Baseline)
+
+The following curves show the initial performance of the untrained Random Agent against the structured Rule-Based baseline over 100 episodes. 
+
+![Total Reward over Episodes](./reports/plots/reward_vs_episode_curve.png)
+*Figure 1: Total reward accumulated per episode. The random agent struggles due to harsh penalties on blind guessing, while the rule agent scores consistently higher.*
+
+![Mean Time To Resolution](./reports/plots/MTTR_vs_episode_curve.png)
+*Figure 2: Steps taken to resolve the incident. Lower is better. The random baseline thrashes around randomly, taking far longer than the targeted rule-based actions.*
+
+![Efficiency over Episodes](./reports/plots/efficiency_vs_episode_curve.png)
+*Figure 3: Action efficiency (ratio of highly correct diagnostic/remediation actions vs total actions). Random hovers around zero, showing no logical progression.*
 
 ---
 
@@ -40,20 +50,21 @@ The UI will start at `http://0.0.0.0:7860`.
 
 ### Running the Benchmark
 
-You can run the Phase 1 baseline evaluation. This will play through the scenarios defined in `scenarios/benchmark_cases.json` and generate performance charts in the `assets/` directory.
+You can generate evaluation data and Hugging Face SFT-ready textual data (`data/*_hf_dataset.txt`) by running the evaluator.
 
 ```bash
-# Run the evaluation suite
-uv run python -m eval.runner --phase phase1 --verbose
+# Evaluate an agent (random, rule, trained)
+uv run python -m eval.evaluate --agent random --num_episodes 100
 ```
 
 ---
 
 ## Project Structure
 
-- `server/`: Contains the core OpenEnv implementation (`sre_decision_env_environment.py`), reward functions, and noisy sensor logic.
+- `server/`: Contains the core OpenEnv implementation (`sre_decision_env_environment.py`), strictly bounded distance-aware `rewards.py`, and noisy `sensors.py`.
 - `llm/`: Client interfaces for model inference (e.g., OpenRouter).
 - `models.py`: Defines the `SreDecisionAction` and `SreDecisionObservation` schemas.
-- `ui/`: Gradio application for visual interaction.
-- `eval/`: Automated runner and plotting scripts for benchmark evaluation.
-- `scenarios/`: Benchmark test cases defining specific hidden root causes.
+- `ui/`: Gradio application for visual interaction and step-by-step debugging.
+- `eval/`: Automated RL evaluation pipeline (`evaluate.py`) that generates HF datasets, CSV metrics, and training curves.
+- `data/`: Exported episode metrics and raw instruction/response textual datasets.
+- `reports/plots/`: Auto-generated training comparison curves.

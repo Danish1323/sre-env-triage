@@ -223,73 +223,82 @@ def run_evaluation(agent_type: str, num_episodes: int = 10):
 def generate_comparison_plots():
     logger.info("Generating comparison plots...")
     import glob
+    import pandas as pd
+    import seaborn as sns
     
-    # Find all summary files
-    summary_files = glob.glob(str(REPORTS_DIR / "*_summary.json"))
-    if not summary_files:
+    # Find all episode CSV files
+    csv_files = glob.glob(str(DATA_DIR / "*_episodes.csv"))
+    if not csv_files:
         return
         
-    agents = []
-    success_rates = []
-    avg_rewards = []
-    mttrs = []
-    efficiencies = []
-    wrong_rates = []
+    # Combine all data into a single DataFrame
+    dfs = []
+    for cf in csv_files:
+        df = pd.read_csv(cf)
+        # Add an 'episode' column representing the index
+        df["episode"] = df.index + 1
+        dfs.append(df)
+        
+    full_df = pd.concat(dfs, ignore_index=True)
     
-    for sf in summary_files:
-        with open(sf, "r") as f:
-            data = json.load(f)
-            ag = data["agent"]
-            m = data["metrics"]
-            
-            agents.append(ag)
-            success_rates.append(m["success_rate"])
-            avg_rewards.append(m["avg_reward"])
-            mttrs.append(m["MTTR"])
-            efficiencies.append(m["efficiency"])
-            wrong_rates.append(m["wrong_rate"])
-            
-    # 1. reward_vs_episode
-    plt.figure()
-    plt.bar(agents, avg_rewards, color=["#3498db", "#2ecc71", "#e74c3c"])
-    plt.title("Average Reward per Agent")
-    plt.ylabel("Reward")
-    plt.savefig(PLOTS_DIR / "reward_vs_episode.png")
+    sns.set_theme(style="whitegrid")
+    
+    # Calculate a rolling average for smoother curves (window of 5 or 10 depending on size)
+    # We will use sns.lineplot which can handle multiple agents and automatically do bootstrapped confidence intervals if there are multiple runs, but here we just have one run. 
+    # To smooth it out, we compute a rolling mean per agent.
+    
+    smoothed_df = full_df.copy()
+    window_size = min(10, max(1, len(full_df) // (len(csv_files) * 5)))
+    
+    # We apply rolling mean over numeric columns grouped by agent
+    cols_to_smooth = ["total_reward", "steps", "success", "efficiency"]
+    for col in cols_to_smooth:
+        smoothed_df[col] = full_df.groupby("agent_type")[col].transform(lambda x: x.rolling(window=window_size, min_periods=1).mean())
+
+    # 1. reward_vs_episode_curve
+    plt.figure(figsize=(10, 6))
+    sns.lineplot(data=smoothed_df, x="episode", y="total_reward", hue="agent_type", linewidth=2)
+    plt.title(f"Training Curve: Total Reward over Episodes (Rolling Avg = {window_size})")
+    plt.xlabel("Episode")
+    plt.ylabel("Total Reward")
+    plt.legend(title="Agent")
+    plt.tight_layout()
+    plt.savefig(PLOTS_DIR / "reward_vs_episode_curve.png", dpi=150)
     plt.close()
     
-    # 2. success_rate_vs_episode
-    plt.figure()
-    plt.bar(agents, success_rates, color=["#3498db", "#2ecc71", "#e74c3c"])
-    plt.title("Success Rate per Agent")
+    # 2. success_rate_vs_episode_curve
+    plt.figure(figsize=(10, 6))
+    sns.lineplot(data=smoothed_df, x="episode", y="success", hue="agent_type", linewidth=2)
+    plt.title(f"Training Curve: Success Rate over Episodes (Rolling Avg = {window_size})")
+    plt.xlabel("Episode")
     plt.ylabel("Success Rate")
-    plt.ylim(0, 1.0)
-    plt.savefig(PLOTS_DIR / "success_rate_vs_episode.png")
+    plt.ylim(0, 1.05)
+    plt.legend(title="Agent")
+    plt.tight_layout()
+    plt.savefig(PLOTS_DIR / "success_rate_vs_episode_curve.png", dpi=150)
     plt.close()
     
-    # 3. MTTR_vs_episode
-    plt.figure()
-    plt.bar(agents, mttrs, color=["#3498db", "#2ecc71", "#e74c3c"])
-    plt.title("Mean Time To Resolution (Steps)")
-    plt.ylabel("Steps")
-    plt.savefig(PLOTS_DIR / "MTTR_vs_episode.png")
+    # 3. MTTR_vs_episode_curve (steps)
+    plt.figure(figsize=(10, 6))
+    sns.lineplot(data=smoothed_df, x="episode", y="steps", hue="agent_type", linewidth=2)
+    plt.title(f"Training Curve: Mean Time To Resolution over Episodes (Rolling Avg = {window_size})")
+    plt.xlabel("Episode")
+    plt.ylabel("Steps Taken (Lower is Better)")
+    plt.legend(title="Agent")
+    plt.tight_layout()
+    plt.savefig(PLOTS_DIR / "MTTR_vs_episode_curve.png", dpi=150)
     plt.close()
     
-    # 4. efficiency_vs_episode
-    plt.figure()
-    plt.bar(agents, efficiencies, color=["#3498db", "#2ecc71", "#e74c3c"])
-    plt.title("Efficiency (Correct Actions / Total Actions)")
-    plt.ylabel("Efficiency Rate")
-    plt.ylim(0, 1.0)
-    plt.savefig(PLOTS_DIR / "efficiency_vs_episode.png")
-    plt.close()
-    
-    # 5. wrong_action_rate
-    plt.figure()
-    plt.bar(agents, wrong_rates, color=["#3498db", "#2ecc71", "#e74c3c"])
-    plt.title("Wrong Action Rate")
-    plt.ylabel("Rate")
-    plt.ylim(0, 1.0)
-    plt.savefig(PLOTS_DIR / "wrong_action_rate.png")
+    # 4. efficiency_vs_episode_curve
+    plt.figure(figsize=(10, 6))
+    sns.lineplot(data=smoothed_df, x="episode", y="efficiency", hue="agent_type", linewidth=2)
+    plt.title(f"Training Curve: Efficiency over Episodes (Rolling Avg = {window_size})")
+    plt.xlabel("Episode")
+    plt.ylabel("Efficiency (Correct Actions / Total)")
+    plt.ylim(0, 1.05)
+    plt.legend(title="Agent")
+    plt.tight_layout()
+    plt.savefig(PLOTS_DIR / "efficiency_vs_episode_curve.png", dpi=150)
     plt.close()
 
 if __name__ == "__main__":

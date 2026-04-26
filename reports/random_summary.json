@@ -2,9 +2,9 @@
   "agent": "random",
   "metrics": {
     "success_rate": 1.0,
-    "avg_reward": 0.9241418199787566,
-    "MTTR": 1.0,
-    "efficiency": 1.0,
-    "wrong_rate": 0.0
+    "avg_reward": 2.795584109272113,
+    "MTTR": 5.23,
+    "efficiency": 0.23518164435946462,
+    "wrong_rate": 0.32695984703632885
   }
 }
