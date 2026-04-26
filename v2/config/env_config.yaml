@@ -1,0 +1,35 @@
+# Environment Configuration for SRE Decision Env V2
+
+max_steps: 10
+penalty_per_message: -0.05
+timeout_penalty: -1.0
+wrong_fix_penalty: -0.5
+success_reward: 1.0
+
+# Difficulty Settings
+difficulty_levels:
+  easy:
+    num_services: 3
+    cascading: false
+    misleading_signals: false
+  medium:
+    num_services: 5
+    cascading: true
+    misleading_signals: false
+  hard:
+    num_services: 8
+    cascading: true
+    misleading_signals: true
+
+# Base Topologies (can be expanded dynamically in scenarios)
+topology:
+  - source: "api_gateway"
+    target: "auth_service"
+  - source: "api_gateway"
+    target: "frontend_service"
+  - source: "auth_service"
+    target: "user_db"
+  - source: "frontend_service"
+    target: "product_db"
+  - source: "frontend_service"
+    target: "cache_service"
