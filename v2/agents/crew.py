@@ -7,7 +7,7 @@ from v2.agents.tools import (
 
 # 1. Setup LLM
 llm = LLM(
-    model="openrouter/openai/gpt-oss-120b",
+    model="openrouter/meta-llama/llama-3.1-70b-instruct",
     api_key=os.environ.get("OPENROUTER_API_KEY"),
     temperature=0.0 # Strict for technical tasks
 )

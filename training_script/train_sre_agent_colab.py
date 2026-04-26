@@ -9,9 +9,9 @@
 # ─────────────────────────────────────────────────────────────
 # %%
 # Install Unsloth (optimized for T4)
-!pip install unsloth -q
-!pip install "unsloth[colab-new] @ git+https://github.com/unslothai/unsloth.git" -q
-!pip install trl==0.8.6 datasets transformers accelerate bitsandbytes -q
+#!pip install unsloth -q
+#!pip install "unsloth[colab-new] @ git+https://github.com/unslothai/unsloth.git" -q
+#!pip install trl==0.8.6 datasets transformers accelerate bitsandbytes -q
 print("✅ Dependencies installed")
 
 
