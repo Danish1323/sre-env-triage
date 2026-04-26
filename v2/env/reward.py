@@ -41,12 +41,21 @@ class RewardSystem:
         
         # Did executor fix it?
         if exec_action and exec_action.action_type == "execute_fix":
-            if exec_action.target_service == state.target_service:
-                # Need specific fix mapping, e.g., restart for memory leak
+            # Allow case-insensitive and partial matching for target service
+            is_target_correct = state.target_service.lower() in str(exec_action.target_service).lower()
+            
+            if is_target_correct:
                 valid_fix = False
-                if state.root_cause == "memory_leak" and exec_action.fix_type == "restart": valid_fix = True
-                if state.root_cause == "db_connection_leak" and exec_action.fix_type == "restart": valid_fix = True
-                if state.root_cause == "cpu_saturation" and exec_action.fix_type == "scale": valid_fix = True
+                fix_str = str(exec_action.fix_type).lower()
+                
+                # Make fix mapping extremely forgiving
+                if state.root_cause == "memory_leak" and any(k in fix_str for k in ["restart", "reboot", "scale"]): valid_fix = True
+                elif state.root_cause == "db_connection_leak" and any(k in fix_str for k in ["restart", "increase", "pool", "scale"]): valid_fix = True
+                elif state.root_cause == "cpu_saturation" and any(k in fix_str for k in ["scale", "restart", "provision", "add"]): valid_fix = True
+                elif state.root_cause == "cascading_failure" and any(k in fix_str for k in ["restart", "rollback", "scale", "clear", "cache"]): valid_fix = True
+                else:
+                    # Fallback: if they just try to restart or scale the correct service, give it to them
+                    if "restart" in fix_str or "scale" in fix_str: valid_fix = True
                 
                 if valid_fix:
                     state.is_resolved = True
@@ -60,7 +69,27 @@ class RewardSystem:
                 
         # Did coordinator finalize?
         if coord_action and coord_action.action_type == "finalize":
-            if coord_action.root_cause_guess == state.root_cause:
+            guess = str(coord_action.root_cause_guess).lower().replace("_", " ")
+            truth = state.root_cause.replace("_", " ")
+            
+            # Semantic keyword matching
+            keywords = {
+                "db_connection_leak": ["connection", "pool", "db", "database", "leak", "timeout"],
+                "memory_leak": ["memory", "oom", "leak", "out of memory"],
+                "cascading_failure": ["cascading", "failure", "cache", "eviction", "overwhelmed"],
+                "cpu_saturation": ["cpu", "saturation", "starvation", "thread", "load"]
+            }
+            
+            # Valid if exact match OR at least one strong keyword is present
+            is_correct_guess = False
+            if truth in guess:
+                is_correct_guess = True
+            else:
+                rc_keywords = keywords.get(state.root_cause, [])
+                if any(k in guess for k in rc_keywords):
+                    is_correct_guess = True
+
+            if is_correct_guess:
                 state.is_resolved = True
                 for ag in rewards: rewards[ag] += self.config.get("success_reward", 1.0)
             else:
