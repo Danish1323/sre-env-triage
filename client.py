@@ -29,17 +29,17 @@ class SreDecisionEnv(
         >>> # Connect to a running server
         >>> with SreDecisionEnv(base_url="http://localhost:8000") as client:
         ...     result = client.reset()
-        ...     print(result.observation.echoed_message)
+        ...     print(result.observation.metadata)
         ...
-        ...     result = client.step(SreDecisionAction(message="Hello!"))
-        ...     print(result.observation.echoed_message)
+        ...     result = client.step(SreDecisionAction(action_name="inspect_logs", rationale="Initial triage"))
+        ...     print(result.observation.logs)
 
     Example with Docker:
         >>> # Automatically start container and connect
         >>> client = SreDecisionEnv.from_docker_image("sre_decision_env-env:latest")
         >>> try:
         ...     result = client.reset()
-        ...     result = client.step(SreDecisionAction(message="Test"))
+        ...     result = client.step(SreDecisionAction(action_name="inspect_metrics", rationale="Check CPU"))
         ... finally:
         ...     client.close()
     """
@@ -47,41 +47,46 @@ class SreDecisionEnv(
     def _step_payload(self, action: SreDecisionAction) -> Dict:
         """
         Convert SreDecisionAction to JSON payload for step message.
-
-        Args:
-            action: SreDecisionAction instance
-
-        Returns:
-            Dictionary representation suitable for JSON encoding
         """
-        return {
-            "message": action.message,
+        import logging
+        from .models import VALID_ACTIONS
+        
+        # Validation Layer
+        if action.action_name not in VALID_ACTIONS:
+            raise ValueError(f"Invalid action '{action.action_name}'. Must be one of: {VALID_ACTIONS}")
+            
+        payload = {
+            "action_name": action.action_name,
+            "rationale": action.rationale
         }
+        
+        logging.debug(f"Outgoing action payload: {payload}")
+        return payload
 
     def _parse_result(self, payload: Dict) -> StepResult[SreDecisionObservation]:
         """
         Parse server response into StepResult[SreDecisionObservation].
-
-        Args:
-            payload: JSON response data from server
-
-        Returns:
-            StepResult with SreDecisionObservation
         """
+        import logging
+        logging.debug(f"Incoming observation payload: {payload}")
+        
         obs_data = payload.get("observation", {})
         observation = SreDecisionObservation(
-            echoed_message=obs_data.get("echoed_message", ""),
-            message_length=obs_data.get("message_length", 0),
-            done=payload.get("done", False),
-            reward=payload.get("reward"),
-            metadata=obs_data.get("metadata", {}),
+            logs=obs_data.get("logs"),
+            metrics=obs_data.get("metrics"),
+            messages=obs_data.get("messages"),
+            observer=obs_data.get("observer"),
+            time_step=obs_data.get("time_step", 0),
         )
 
-        return StepResult(
+        result = StepResult(
             observation=observation,
             reward=payload.get("reward"),
             done=payload.get("done", False),
         )
+        # Store metadata dynamically since OpenEnv StepResult omits it
+        setattr(result, 'info', payload.get("info", {}))
+        return result
 
     def _parse_state(self, payload: Dict) -> State:
         """

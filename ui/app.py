@@ -104,7 +104,7 @@ def _obs_md(obs, debug: bool) -> str:
         f"| 💾 Memory usage | `{obs_sig.get('memory_usage', 'N/A')}` |",
         f"| 🔌 DB Connections | `{obs_sig.get('db_connections', 'N/A')}` |",
     ]
-    if d.get("incident_resolved"):
+    if obs.metadata.get("incident_resolved"):
         lines.append("\n---\n🏁 **Episode complete. Click Reset to start again.**")
     return "\n".join(lines)
 
@@ -146,9 +146,10 @@ def _get_outputs(obs, action_name, reward, reasoning="Manual action"):
     sign = f"+{reward:.2f}" if reward >= 0 else f"{reward:.2f}"
     explanation = _explain_reward(reward, action_name)
     breakdown = obs.metadata.get("reward_breakdown", {})
+    feedback_text = obs.metadata.get("action_feedback", "")
     
-    feedback = f"{explanation}\n\n**Environment Feedback:**\n> {obs.action_feedback}"
-    if obs.incident_resolved:
+    feedback = f"{explanation}\n\n**Environment Feedback:**\n> {feedback_text}"
+    if obs.metadata.get("incident_resolved", False):
         feedback += f"\n\n🏁 **Episode complete. Total reward: {_episode_total_reward:.2f}**"
 
     return (
@@ -190,7 +191,7 @@ def manual_action(action_display_name: str, debug: bool):
     _debug_mode = bool(debug)
 
     if _current_obs is None: return _blank_outputs()
-    if _current_obs.incident_resolved: return _get_outputs(_current_obs, _history[-1]["action"] if _history else "N/A", 0)
+    if _current_obs.metadata.get("incident_resolved", False): return _get_outputs(_current_obs, _history[-1]["action"] if _history else "N/A", 0)
 
     action_name = action_display_name.replace("🔍 ", "").replace("⚡ ", "").strip()
     action = SreDecisionAction(action_name=action_name)
@@ -203,7 +204,7 @@ def manual_action(action_display_name: str, debug: bool):
         "step": _current_obs.metadata.get("step", 0),
         "action": action_name, 
         "reward": reward, 
-        "feedback": _current_obs.action_feedback or "",
+        "feedback": _current_obs.metadata.get("action_feedback", ""),
         "reasoning": "Manual Action"
     })
 
@@ -220,7 +221,7 @@ def agent_action(debug: bool):
         return tuple(outs)
 
     if _current_obs is None: return _blank_outputs()
-    if _current_obs.incident_resolved: return _get_outputs(_current_obs, _history[-1]["action"] if _history else "N/A", 0)
+    if _current_obs.metadata.get("incident_resolved", False): return _get_outputs(_current_obs, _history[-1]["action"] if _history else "N/A", 0)
 
     obs_dict = _current_obs.model_dump()
     user_msg = build_user_prompt(obs_dict, _history)
@@ -246,7 +247,7 @@ def agent_action(debug: bool):
         "step": _current_obs.metadata.get("step", 0),
         "action": action_name, 
         "reward": reward, 
-        "feedback": _current_obs.action_feedback or "",
+        "feedback": _current_obs.metadata.get("action_feedback", ""),
         "reasoning": llm_response
     })
 

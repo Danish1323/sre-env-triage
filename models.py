@@ -9,8 +9,8 @@ Phase 1 — Dec-POMDP scaffold.
 
 from typing import Any, Dict, List, Optional
 
-from openenv.core.env_server.types import Action, Observation
-from pydantic import Field
+from openenv.core.env_server.types import Action
+from pydantic import Field, BaseModel
 
 
 # ---------------------------------------------------------------------------
@@ -56,7 +56,7 @@ class SreDecisionAction(Action):
 # ---------------------------------------------------------------------------
 
 
-class LogsSignal(Observation):
+class LogsSignal(BaseModel):
     """Noisy signal from the logs sensor module."""
 
     latency_spike: bool = Field(default=False, description="Was a latency spike detected?")
@@ -69,7 +69,7 @@ class LogsSignal(Observation):
     )
 
 
-class ObserverSignal(Observation):
+class ObserverSignal(BaseModel):
     """Noisy signal from the observer sensor module."""
 
     server_b_health: str = Field(
@@ -81,33 +81,29 @@ class ObserverSignal(Observation):
     db_connections: int = Field(default=0, description="Number of active database connections.")
 
 
-class SreDecisionObservation(Observation):
+class SreDecisionObservation(BaseModel):
     """
     Full observation bundle delivered to the orchestrator agent each step.
 
     Contains signals from all sensor modules plus episode metadata.
     The hidden root cause is NEVER included here.
     """
+    model_config = {"extra": "forbid"}
 
-    logs: Dict[str, Any] = Field(
+    logs: Optional[Dict[str, Any]] = Field(
         default_factory=dict,
-        description="Noisy log sensor signals (latency_spike, error_rate, log_anomaly_score).",
+        description="Noisy log sensor signals.",
     )
-    observer: Dict[str, Any] = Field(
+    metrics: Optional[Dict[str, Any]] = Field(
         default_factory=dict,
-        description="Noisy observer sensor signals (server_b_health, cpu_usage, memory_usage).",
+        description="Metric signals.",
+    )
+    messages: Optional[List[str]] = Field(
+        default_factory=list,
+        description="Shared communication messages.",
+    )
+    observer: Optional[Dict[str, Any]] = Field(
+        default_factory=dict,
+        description="Noisy observer sensor signals.",
     )
     time_step: int = Field(default=0, description="Current step index within the episode.")
-    last_action: Optional[str] = Field(
-        default=None, description="The action taken on the previous step."
-    )
-    action_feedback: Optional[str] = Field(
-        default=None, description="Human-readable feedback about the last action's effect."
-    )
-    incident_resolved: bool = Field(
-        default=False, description="True when the episode has been terminated by the agent."
-    )
-    available_actions: List[str] = Field(
-        default_factory=lambda: VALID_ACTIONS,
-        description="The complete list of valid action names the agent may choose.",
-    )

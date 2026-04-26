@@ -14,7 +14,7 @@ Phase 1 — OpenEnv scaffold + hidden-state environment.
 
 import logging
 import random
-from typing import Optional
+from typing import Optional, Dict, Any
 from uuid import uuid4
 
 from openenv.core.env_server.interfaces import Environment
@@ -85,7 +85,7 @@ class SreDecisionEnvironment(Environment):
     # Reset
     # -----------------------------------------------------------------
 
-    def reset(self) -> SreDecisionObservation:
+    def reset(self) -> Dict[str, Any]:
         """
         Start a new episode with a freshly sampled hidden root cause.
 
@@ -111,21 +111,30 @@ class SreDecisionEnvironment(Environment):
         logs = get_logs_signal(self._root_cause)
         observer = get_observer_signal(self._root_cause)
 
-        return SreDecisionObservation(
+        obs = SreDecisionObservation(
             logs=logs,
+            metrics={},
+            messages=[],
             observer=observer,
             time_step=0,
-            last_action=None,
-            action_feedback="A new SRE incident has been detected. Begin your investigation.",
-            incident_resolved=False,
-            available_actions=VALID_ACTIONS,
         )
+        return {
+            "observation": obs.model_dump(),
+            "reward": None,
+            "done": False,
+            "info": {
+                "last_action": None,
+                "action_feedback": "A new SRE incident has been detected. Begin your investigation.",
+                "incident_resolved": False,
+                "available_actions": VALID_ACTIONS,
+            }
+        }
 
     # -----------------------------------------------------------------
     # Step
     # -----------------------------------------------------------------
 
-    def step(self, action: SreDecisionAction) -> SreDecisionObservation:  # type: ignore[override]
+    def step(self, action: SreDecisionAction) -> Dict[str, Any]:  # type: ignore[override]
         """
         Execute one decision step.
 
@@ -193,24 +202,33 @@ class SreDecisionEnvironment(Environment):
         logs = get_logs_signal(self._root_cause)
         observer = get_observer_signal(self._root_cause)
 
-        return SreDecisionObservation(
+        obs = SreDecisionObservation(
             logs=logs,
+            metrics={},
+            messages=[],
             observer=observer,
             time_step=self._state.step_count,
-            last_action=action_name,
-            action_feedback=feedback,
-            incident_resolved=self._done,
-            available_actions=VALID_ACTIONS,
-            done=self._done,
-            reward=reward,
-            metadata={
-                "root_cause_hidden": True,  # never expose real value
+        )
+
+        assert isinstance(reward, float)
+        assert isinstance(self._done, bool)
+
+        return {
+            "observation": obs.model_dump(),
+            "reward": reward,
+            "done": self._done,
+            "info": {
+                "last_action": action_name,
+                "action_feedback": feedback,
+                "incident_resolved": self._done,
+                "available_actions": VALID_ACTIONS,
+                "root_cause_hidden": True,
                 "step": self._state.step_count,
                 "episode_id": self._state.episode_id,
                 "total_reward_so_far": round(sum(self._episode_rewards), 4),
                 "reward_breakdown": full_breakdown,
-            },
-        )
+            }
+        }
 
     # -----------------------------------------------------------------
     # Helpers
@@ -235,19 +253,27 @@ class SreDecisionEnvironment(Environment):
         }
         return messages.get(action_name, f"Action '{action_name}' executed.")
 
-    def _terminal_obs(self, feedback: str) -> SreDecisionObservation:
-        """Return a terminal placeholder observation."""
-        return SreDecisionObservation(
+    def _terminal_obs(self, feedback: str) -> Dict[str, Any]:
+        """Return a terminal placeholder dict."""
+        obs = SreDecisionObservation(
             logs={},
+            metrics={},
+            messages=[],
             observer={},
             time_step=self._state.step_count,
-            last_action=self._last_action,
-            action_feedback=feedback,
-            incident_resolved=True,
-            available_actions=[],
-            done=True,
-            reward=0.0,
         )
+        return {
+            "observation": obs.model_dump(),
+            "reward": 0.0,
+            "done": True,
+            "info": {
+                "last_action": self._last_action,
+                "action_feedback": feedback,
+                "incident_resolved": True,
+                "available_actions": [],
+            }
+        }
+
 
     # -----------------------------------------------------------------
     # OpenEnv interface property

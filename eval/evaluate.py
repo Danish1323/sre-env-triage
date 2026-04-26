@@ -48,12 +48,14 @@ def run_episode(env: SreDecisionEnvironment, agent: Any, max_steps: int = MAX_ST
         # We step the environment
         next_obs = env.step(action)
         reward = next_obs.reward or 0.0
-        done = next_obs.done or next_obs.incident_resolved
         
         # SRE logic context
         # Correct actions yield high reward, wrong actions yield low reward
         is_correct = reward >= 0.75
         is_wrong = reward <= 0.35
+        
+        resolved = next_obs.metadata.get("incident_resolved", False)
+        done = next_obs.done or resolved
         
         step_data = {
             "episode_id": episode_id,
@@ -62,7 +64,7 @@ def run_episode(env: SreDecisionEnvironment, agent: Any, max_steps: int = MAX_ST
             "action": action.action_name,
             "reward": reward,
             "done": done,
-            "resolved": next_obs.incident_resolved,
+            "resolved": resolved,
             "correct_action": is_correct if is_correct else (False if is_wrong else None)
         }
         
