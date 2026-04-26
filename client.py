@@ -6,7 +6,8 @@
 
 """Sre Decision Env Environment Client."""
 
-from typing import Dict
+from dataclasses import dataclass
+from typing import Any, Dict, Optional
 
 from openenv.core import EnvClient
 from openenv.core.client_types import StepResult
@@ -16,6 +17,31 @@ try:
     from .models import SreDecisionAction, SreDecisionObservation
 except ImportError:
     from models import SreDecisionAction, SreDecisionObservation  # type: ignore
+
+
+@dataclass
+class SreStepResult(StepResult[SreDecisionObservation]):
+    """
+    Extended step result that carries the ``info`` dict from the server.
+
+    Inherits ``observation``, ``reward``, and ``done`` from
+    :class:`openenv.core.client_types.StepResult` and adds a typed ``info``
+    field so callers can reliably access episode metadata without relying on
+    dynamic attribute assignment.
+
+    Attributes:
+        observation: Parsed :class:`SreDecisionObservation`.
+        reward: Scalar reward for this step (``None`` after reset).
+        done: Whether the episode has ended.
+        info: Episode metadata returned by the server (e.g.
+            ``action_feedback``, ``incident_resolved``, ``available_actions``).
+    """
+
+    info: Dict[str, Any] = None  # type: ignore[assignment]
+
+    def __post_init__(self) -> None:
+        if self.info is None:
+            self.info = {}
 
 
 class SreDecisionEnv(
