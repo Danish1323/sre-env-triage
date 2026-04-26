@@ -8,31 +8,34 @@ build-backend = "setuptools.build_meta"
 [project]
 name = "openenv-sre_decision_env"
 version = "0.1.0"
-description = "SRE Incident-Response Environment for OpenEnv — Phase 1"
+description = "SRE Incident-Response Environment for OpenEnv — Phase 3"
 requires-python = ">=3.10"
 dependencies = [
     # OpenEnv runtime
     "openenv-core[core]>=0.2.2",
-
-    # LLM inference — OpenRouter Phase 1
-    "openai>=1.40.0,<3.0.0",          # openai SDK (openrouter uses same API)
+    # LLM inference — Phase 3 (OpenRouter + Modal)
+    "openai>=1.40.0,<3.0.0",
     "httpx>=0.24.0",
-
+    "modal>=0.62.0",
+    "litellm>=1.40.0",
+    # Multi-agent Orchestration — Phase 4
+    "crewai>=0.30.0",
+    # Models & Validation
+    "pydantic>=2.0.0",
     # UI
     "gradio>=4.0.0",
-
     # Evaluation / plotting
     "matplotlib>=3.7.0",
     "seaborn>=0.12.0",
     "pandas>=2.0.0",
-
     # Config / env
     "python-dotenv>=1.0.0",
     "pyyaml>=6.0",
-
     # Utilities
     "rich>=13.0.0",
     "typer>=0.9.0",
+    "huggingface-hub>=1.12.0",
+    "datasets>=4.8.4",
 ]
 
 [project.optional-dependencies]
