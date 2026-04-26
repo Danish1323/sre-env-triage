@@ -15,7 +15,7 @@ DONE.md
 # Virtual environments
 .venv/
 venv/
-env/
+/env/
 
 # Secrets — NEVER commit
 .env
