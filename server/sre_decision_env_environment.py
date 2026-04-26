@@ -76,6 +76,7 @@ class SreDecisionEnvironment(Environment):
         self._state = State(episode_id=str(uuid4()), step_count=0)
         self._root_cause: Optional[str] = None
         self._done: bool = False
+        self._incident_resolved: bool = False
         self._last_action: Optional[str] = None
         self._episode_rewards: list[float] = []
         self._history: list[str] = []
@@ -97,6 +98,7 @@ class SreDecisionEnvironment(Environment):
         self._root_cause = random.choice(ROOT_CAUSES)
         self._state = State(episode_id=str(uuid4()), step_count=0)
         self._done = False
+        self._incident_resolved = False
         self._last_action = None
         self._episode_rewards = []
         self._history = []
@@ -163,6 +165,7 @@ class SreDecisionEnvironment(Environment):
         
         if is_terminal_action or timed_out:
             self._done = True
+            self._incident_resolved = is_terminal_action
 
         # --- Check diagnosis state ---
         diagnosed = any(a in ["inspect_logs", "inspect_metrics"] for a in self._history)
@@ -219,7 +222,7 @@ class SreDecisionEnvironment(Environment):
             "info": {
                 "last_action": action_name,
                 "action_feedback": feedback,
-                "incident_resolved": self._done,
+                "incident_resolved": is_terminal_action,
                 "available_actions": VALID_ACTIONS,
                 "root_cause_hidden": True,
                 "step": self._state.step_count,
@@ -268,7 +271,7 @@ class SreDecisionEnvironment(Environment):
             "info": {
                 "last_action": self._last_action,
                 "action_feedback": feedback,
-                "incident_resolved": True,
+                "incident_resolved": self._incident_resolved,
                 "available_actions": [],
             }
         }
