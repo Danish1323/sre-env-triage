@@ -63,20 +63,33 @@ class TestSensors:
 
 class TestRewards:
     def test_invalid_action_penalty(self):
-        r = compute_step_reward("bad_action", "no_issue", 1, MAX_STEPS, is_valid=False)
-        assert r < 0
+        reward, _ = compute_step_reward(
+            "bad_action", "no_issue", 1, MAX_STEPS,
+            is_valid=False, history=[], diagnosed=False, resolved=False,
+        )
+        assert reward < 0.3  # invalid actions receive a low reward (0.05)
 
     def test_correct_remediation_positive(self):
-        r = compute_step_reward("restart_service", "server_A_failure", 1, MAX_STEPS, is_valid=True)
-        assert r > 0
+        reward, _ = compute_step_reward(
+            "restart_service", "server_A_failure", 1, MAX_STEPS,
+            is_valid=True, history=["inspect_logs"], diagnosed=True, resolved=False,
+        )
+        assert reward > 0.5  # correct fix after diagnosis earns a high reward
 
     def test_harmful_action_penalty(self):
-        r = compute_step_reward("resolve_incident", "server_A_failure", 1, MAX_STEPS, is_valid=True)
-        assert r < 0
+        # resolve_incident is wrong for server_A_failure → low reward
+        reward, _ = compute_step_reward(
+            "resolve_incident", "server_A_failure", 1, MAX_STEPS,
+            is_valid=True, history=[], diagnosed=False, resolved=True,
+        )
+        assert reward < 0.4
 
     def test_diagnostic_action_small_positive(self):
-        r = compute_step_reward("inspect_logs", "no_issue", 1, MAX_STEPS, is_valid=True)
-        assert r > 0
+        reward, _ = compute_step_reward(
+            "inspect_logs", "no_issue", 1, MAX_STEPS,
+            is_valid=True, history=[], diagnosed=False, resolved=False,
+        )
+        assert reward > 0.3
 
     def test_terminal_timeout_penalty(self):
         r = compute_terminal_reward(False, "no_issue", None, MAX_STEPS, MAX_STEPS)
@@ -90,41 +103,44 @@ class TestRewards:
 class TestEnvironment:
     def test_reset_returns_observation(self):
         env = SreDecisionEnvironment()
-        obs = env.reset()
-        assert isinstance(obs, SreDecisionObservation)
+        result = env.reset()
+        assert isinstance(result, dict)
+        assert "observation" in result
+        assert isinstance(result["observation"], dict)
 
     def test_hidden_state_not_in_obs(self):
         env = SreDecisionEnvironment()
-        obs = env.reset()
-        obs_dict = obs.model_dump()
+        result = env.reset()
+        obs_dict = result["observation"]
         assert "root_cause" not in obs_dict
         assert "_root_cause" not in str(obs_dict)
 
     def test_step_increments_counter(self):
         env = SreDecisionEnvironment()
         env.reset()
-        obs = env.step(SreDecisionAction(action_name="inspect_logs"))
-        assert obs.time_step == 1
+        result = env.step(SreDecisionAction(action_name="inspect_logs"))
+        assert result["observation"]["time_step"] == 1
 
-    def test_valid_actions_in_obs(self):
+    def test_valid_actions_in_info(self):
         env = SreDecisionEnvironment()
-        obs = env.reset()
+        result = env.reset()
+        available = result["info"]["available_actions"]
         for action in VALID_ACTIONS:
-            assert action in obs.available_actions
+            assert action in available
 
     def test_episode_terminates_on_resolve(self):
         env = SreDecisionEnvironment()
         env.reset()
-        obs = env.step(SreDecisionAction(action_name="resolve_incident"))
-        assert obs.done is True or obs.incident_resolved is True
+        result = env.step(SreDecisionAction(action_name="resolve_incident"))
+        assert result["done"] is True
 
     def test_episode_terminates_on_max_steps(self):
         env = SreDecisionEnvironment()
         env.reset()
-        obs = None
+        result = None
         for _ in range(MAX_STEPS):
-            obs = env.step(SreDecisionAction(action_name="inspect_logs"))
-        assert obs.done is True
+            result = env.step(SreDecisionAction(action_name="inspect_logs"))
+        assert result["done"] is True
 
     def test_step_without_reset_raises(self):
         env = SreDecisionEnvironment()

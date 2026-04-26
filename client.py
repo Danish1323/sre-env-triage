@@ -12,7 +12,10 @@ from openenv.core import EnvClient
 from openenv.core.client_types import StepResult
 from openenv.core.env_server.types import State
 
-from .models import SreDecisionAction, SreDecisionObservation
+try:
+    from .models import SreDecisionAction, SreDecisionObservation
+except ImportError:
+    from models import SreDecisionAction, SreDecisionObservation  # type: ignore
 
 
 class SreDecisionEnv(
@@ -49,8 +52,11 @@ class SreDecisionEnv(
         Convert SreDecisionAction to JSON payload for step message.
         """
         import logging
-        from .models import VALID_ACTIONS
-        
+        try:
+            from .models import VALID_ACTIONS
+        except ImportError:
+            from models import VALID_ACTIONS  # type: ignore
+
         # Validation Layer
         if action.action_name not in VALID_ACTIONS:
             raise ValueError(f"Invalid action '{action.action_name}'. Must be one of: {VALID_ACTIONS}")
